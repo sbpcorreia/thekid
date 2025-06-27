@@ -58,11 +58,15 @@ const RobotUI = {
     // Atualização otimizada de elementos existentes
     updateExistingRobot(item, data) {
         const { robotName, battery, online, robotCode, posX, posY, 
-                       status, statusText, podCode, info, robotDir, speed } = data;
+                       status, statusText, podCode, info, robotDir, speed, taskData } = data;
         
         const remain = info?.estimatedTimeRemaining ?? 0;
         const progress = info?.progressPercent ?? 0;
         const showProgress = remain > 0;
+        const taskId = taskData?.taskCode ?? " - ";
+        const taskStamp = taskData?.taskStamp ?? "";
+        const from = taskData?.origin ?? "-";
+        const to = taskData?.destination ?? "-";
 
         // Batch DOM updates para melhor performance
         const updates = [
@@ -74,9 +78,9 @@ const RobotUI = {
             ['.robot-status-text', el => el.textContent = `(${status}) ${statusText}`],
             ['.robot-pod-text', el => el.textContent = podCode || "- Sem carrinho -"],
             ['.robot-speed-text', el => el.textContent = `${speed} mm/s`],
-            ['.robot-task-text', el => el.textContent = "Desconhecido" ],
-            ['.robot-task-from-text', el => el.textContent = " - "],
-            ['.robot-task-to-text', el => el.textContent = " - "],
+            ['.robot-task-text', el => el.textContent =`Tarefa n.º ${taskId}` ],
+            ['.robot-task-from-text', el => el.textContent = from],
+            ['.robot-task-to-text', el => el.textContent = to],
             ['.robot-eta', el => {
                 el.classList.toggle('d-none', !showProgress);
                 if (showProgress) {
@@ -129,11 +133,15 @@ const RobotUI = {
     // Criação de novo item de robot otimizada
     createNewRobot(data, index, arrayLength) {
         const { robotName, battery, online, robotCode, posX, posY, 
-                       status, statusText, podCode, info, robotDir, speed } = data;
+                       status, statusText, podCode, info, robotDir, speed, taskData } = data;
         
         const remain = info?.estimatedTimeRemaining ?? 0;
         const progress = info?.progressPercent ?? 0;
         const showProgress = remain > 0;
+        const taskId = taskData?.taskCode ?? " - ";
+        const taskStamp = taskData?.taskStamp ?? "";
+        const from = taskData?.origin ?? "-";
+        const to = taskData?.destination ?? "-";
 
         // Container principal
         const item = this.createElement('div', {
@@ -163,9 +171,9 @@ const RobotUI = {
             this.createInfoSection('bi-compass-fill', 'robot-location', `X: ${posX}, Y: ${posY} (${robotDir}°)`, 'robot-location-text'),
             this.createInfoSection('bi bi-speedometer', 'robot-speed', `${speed} mm/s`, 'robot-speed-text'),
             this.createInfoSection('bi bi-cart-fill', 'robot-pod', podCode || "- Sem carrinho -", 'robot-pod-text'),
-            this.createInfoSection('bi-clipboard2-check-fill', 'robot-task', 'Desconhecido', 'robot-task-text'),
-            this.createInfoSection('bi bi-arrow-up-right-square-fill', 'robot-task-from', ' - ', 'robot-task-from-text'),
-            this.createInfoSection('bi bi-arrow-down-right-square-fill', 'robot-task-to', ' - ', 'robot-task-to-text')
+            this.createInfoSection('bi-clipboard2-check-fill', 'robot-task', `Tarefa n.º ${taskId}`, 'robot-task-text'),
+            this.createInfoSection('bi bi-arrow-up-right-square-fill', 'robot-task-from', from, 'robot-task-from-text'),
+            this.createInfoSection('bi bi-arrow-down-right-square-fill', 'robot-task-to', to, 'robot-task-to-text')
         ];
 
         sections.forEach(section => infoCol.appendChild(section));
