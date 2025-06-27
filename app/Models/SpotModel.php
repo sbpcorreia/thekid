@@ -18,4 +18,12 @@ class SpotModel extends Model {
         $query = $builder->get();
         return $query->getRow();
     }
+
+    public function getUnloadLocations() {
+        $builder = $this->db->table($this->table);
+        $builder->select("ponto AS id, descricao AS name");
+        $builder->where("tipo", 2);
+        $query = $builder->get();
+        return $query->getResult();
+    }
 }

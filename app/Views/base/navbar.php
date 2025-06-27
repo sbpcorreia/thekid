@@ -15,7 +15,7 @@
                 </span>
             </div>
             <div class="col-auto">
-                <input type="text" class="form-control form-control-lg" value="<?= $terminalDescription ?? ""; ?>" readonly>
+                <input type="text" class="form-control form-control-lg" data-vk readonly value="<?= $terminalDescription ?? ""; ?>">
             </div>
             <div class="col-auto">
                 <a href="#" class="link-dark" data-bs-toggle="offcanvas" data-bs-target="#config-section" aria-controls="config-section">

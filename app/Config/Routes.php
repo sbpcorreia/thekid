@@ -7,3 +7,6 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Home::index');
 $routes->post("setTerminal", "Home::postSetTerminal");
+$routes->post("tableData", "Home::postTableData");
+$routes->get("unloadLocations", "Home::getUnloadLocations");
+$routes->post("sendTask", "Home::postSendTask");

@@ -11,29 +11,61 @@ use Ratchet\Http\HttpServer;
 use Ratchet\WebSocket\WsServer;
 
 use App\Models\DevicesModel;
-use App\Models\WebServiceModel;
 use App\Libraries\RobotTaskTracker;
+use App\Models\TerminalModel;
+use App\Models\WebServiceModel;
+use App\Models\TaskModel;
 
 class HikrobotWebSocketServer implements MessageComponentInterface
 {
-    protected $clients;
-    protected $loop;
-    protected $robotModel;
-    protected $lastDataHash;
-    protected $tracker;
+    protected \SplObjectStorage $clients;
+    protected \React\EventLoop\LoopInterface $loop;
+    protected DevicesModel $robotModel;
+    protected ?string $lastRobotDataHash = null;
+    protected RobotTaskTracker $tracker;
+    protected WebServiceModel $webserviceModel;
+    protected TerminalModel $terminalModel;
+    protected TaskModel $taskModel;
 
-    public function __construct($loop)
-    {
+    // Cache para os últimos dados de robô processados
+    protected array $cachedRobotData = [];
+    // Cache para a última informação de rack por posCode para evitar broadcasts redundantes
+    protected array $cachedRackInfo = [];
+
+    // Mapeamento de ConnectionInterface para o locationCode do terminal associado
+    protected \SplObjectStorage $clientLocations;
+
+    public function __construct(
+        \React\EventLoop\LoopInterface $loop
+    ) {
         $this->clients = new \SplObjectStorage;
+        $this->clientLocations = new \SplObjectStorage; // Inicializa o SplObjectStorage para clientes
+
         $this->loop = $loop;
 
-        // Aqui usamos o model diretamente
-        //$this->robotModel = new RobotModel();
-        $this->robotModel = new DevicesModel();
-        $this->tracker = new RobotTaskTracker();
+        // Injeção de dependência para modelos e bibliotecas
+        $this->robotModel       = new DevicesModel();
+        $this->tracker          = new RobotTaskTracker();
+        $this->webserviceModel  = new WebServiceModel();
+        $this->terminalModel    = new TerminalModel();
+        $this->taskModel        = new TaskModel();
 
+        // Timer para polling de dados de robôs (a cada 5 segundos)
         $loop->addPeriodicTimer(5, function () {
             $this->pollRobotData();
+        });
+
+        // Timer para polling de informações de rack para cada localização de terminal ativa (a cada 5 segundos)
+        // Isso assume que você quer atualizar todos os clientes sobre as racks nas localizações que eles 'se inscreveram'.
+        $loop->addPeriodicTimer(5, function() {
+            foreach ($this->clientLocations as $conn) {
+                if ($this->clientLocations->offsetExists($conn)) {
+                    $locationCode = $this->clientLocations[$conn];
+                    if (!empty($locationCode)) {
+                        $this->queryAndSendRackInfoByPosCode($locationCode, $conn); // Envia seletivamente para cada cliente
+                    }
+                }
+            }
         });
     }
 
@@ -42,114 +74,279 @@ class HikrobotWebSocketServer implements MessageComponentInterface
         $this->clients->attach($conn);
         echo "New connection: {$conn->resourceId}\n";
 
-        // Envia dados iniciais
-        $this->sendInitialData($conn);
+        // Envia dados iniciais do robô (o cache mais recente)
+        $this->sendRobotStatusToClient($conn);
     }
 
     public function onMessage(ConnectionInterface $from, $msg)
     {
-        echo "Message from {$from->resourceId}: $msg\n";
+        echo "Message from {$from->resourceId}: {$msg}\n";
+
+        $data = json_decode($msg, true);
+
+        // Validação básica da mensagem
+        if (!is_array($data)) {
+            echo "Invalid message format from {$from->resourceId}: {$msg}\n";
+            $from->send(json_encode(['error' => 'Invalid message format']));
+            return;
+        }
+
+        $terminalCode = $data["terminalCode"] ?? null;
+
+        if (!empty($terminalCode)) {
+            try {
+                $terminalInfo = $this->terminalModel->getTerminalInfo($terminalCode);
+                if (!empty($terminalInfo) && isset($terminalInfo->ponto)) {
+                    // Armazena o locationCode associado a esta conexão
+                    $this->clientLocations->offsetSet($from, $terminalInfo->ponto);
+                    echo "Client {$from->resourceId} associated with location: {$terminalInfo->ponto}\n";
+                } else {
+                    echo "Terminal info or ponto not found for terminalCode: {$terminalCode}\n";
+                }
+            } catch (\Throwable $e) {
+                echo "Error getting terminal info for {$terminalCode}: {$e->getMessage()}\n";
+                // Opcional: enviar erro para o cliente
+                $from->send(json_encode(['error' => 'Failed to get terminal info']));
+            }
+        }
+
+        if (isset($data['type'])) {
+            switch ($data['type']) {
+                case 'requestRobotStatus':
+                    // Cliente está pedindo o status do robô
+                    $this->sendRobotStatusToClient($from);
+                    break;
+                case 'requestRackAtPositionCode':
+                    // Cliente está pedindo a rack em um posCode específico
+                    $requestedPosCode = $data['posCode'] ?? null; // Assume que o posCode pode vir na requisição
+                    if (!empty($requestedPosCode)) {
+                        $this->queryAndSendRackInfoByPosCode($requestedPosCode, $from); // Envia para o cliente que pediu
+                    } elseif ($this->clientLocations->offsetExists($from)) {
+                        $locationCode = $this->clientLocations[$from];
+                        if (!empty($locationCode)) {
+                            $this->queryAndSendRackInfoByPosCode($locationCode, $from);
+                        }
+                    } else {
+                        $from->send(json_encode(['error' => 'No posCode provided or associated with client.']));
+                    }
+                    break;
+                default:
+                    // Se nenhum tipo específico, envia o status do robô e tenta enviar a rack info se houver locationCode
+                    $this->sendRobotStatusToClient($from);
+                    if ($this->clientLocations->offsetExists($from)) {
+                        $locationCode = $this->clientLocations[$from];
+                        if (!empty($locationCode)) {
+                            $this->queryAndSendRackInfoByPosCode($locationCode, $from);
+                        }
+                    }
+                    break;
+            }
+        } else {
+             // Se não houver tipo, assume-se que é uma requisição inicial ou de terminalCode
+             $this->sendRobotStatusToClient($from);
+             if ($this->clientLocations->offsetExists($from)) {
+                 $locationCode = $this->clientLocations[$from];
+                 if (!empty($locationCode)) {
+                     $this->queryAndSendRackInfoByPosCode($locationCode, $from);
+                 }
+             }
+        }
     }
 
     public function onClose(ConnectionInterface $conn)
     {
         $this->clients->detach($conn);
-        echo "Connection {$conn->resourceId} closed\n";
+        $this->clientLocations->detach($conn); // Remove a associação de localização ao desconectar
+        echo "Connection {$conn->resourceId} has disconnected\n";
     }
 
     public function onError(ConnectionInterface $conn, \Throwable $e)
     {
-        echo "Error: {$e->getMessage()}\n";
+        echo "An error has occurred on connection {$conn->resourceId}: {$e->getMessage()}\n";
         $conn->close();
     }
 
+    /**
+     * Consulta os dados dos robôs e as informações da rack, processa e transmite.
+     */
     protected function pollRobotData()
     {
-        helper('utilis_helper');
+        // 1. Obter todas as posições com racks no mapa
+        $racksOnMap = [];
+        helper('utilis_helper'); // Certifique-se de que este helper está carregado
+
+        $bodyPodBerth = [
+            "reqCode" => newStamp(REQ_CODE_POD_BERTH),
+            "mapShortName" => MAP_SHORT_NAME
+        ];
 
         try {
-            $ws = new WebServiceModel();
-            $kidModel = new DevicesModel();
-            $body = array(
-                "reqCode" => newStamp("QAS"),
-                "mapCode" => "LA"
-            );  
-        
-            $result = $ws->callWebservice(HIKROBOT_QUERY_AGV_STATUS, $body);
-            if($result) {
-                $robotsData = $result->data;
-                //echo json_encode($robotsData);
-                foreach($robotsData as $key => $value) {
-                    
+            $podBerthResponse = $this->webserviceModel->callWebservice(HIKROBOT_QUERY_POD_BERTH_MAT, $bodyPodBerth);
 
-                    $robotName = $kidModel->getDeviceName($value->robotIp);
-                    $value->robotName = $robotName;
-                    $value->statusText = lang("HikrobotStatus.statuses.{$value->status}");
-                    unset($value->timestamp);
-
-                    $robotData = $value;
-                    $info = $this->tracker->processRobotData($robotData);
-                    //print_r($info);
-                    $value->info = $info;
-                    
+            if (isset($podBerthResponse->code) && $podBerthResponse->code == '0' && isset($podBerthResponse->data)) {
+                foreach ($podBerthResponse->data as $rackInfo) {
+                    if (isset($rackInfo->posCode)) {
+                        $racksOnMap[$rackInfo->posCode] = true;
+                    }
                 }
-                //echo json_encode($robotsData);
-                $hash = md5(json_encode($robotsData));
-            
-                if($this->lastDataHash !== $hash) {
-                    $this->lastDataHash = $hash;
-                
+            } else {
+                echo "Error fetching pod berth data: " . json_encode($podBerthResponse) . "\n";
+            }
+        } catch (\Throwable $e) {
+            echo "Exception fetching pod berth data: {$e->getMessage()}\n";
+            // Em produção, considere logar isso mais robustamente
+        }
+
+
+        // 2. Obter o status dos AGVs
+        $bodyAgvStatus = [
+            "reqCode" => newStamp(REQ_CODE_AGV_STATUS),
+            "mapCode" => MAP_CODE_AGV_STATUS
+        ];
+        $robotsData = [];
+
+        try {
+            $robotsResponse = $this->webserviceModel->callWebservice(HIKROBOT_QUERY_AGV_STATUS, $bodyAgvStatus);
+
+            if (isset($robotsResponse->code) && $robotsResponse->code == '0' && isset($robotsResponse->data)) {
+                foreach ($robotsResponse->data as $robot) {
+                    $robotCurrentPosCode = $robot->posCode ?? null;
+
+                    $hasRackAtCurrentPosition = false;
+                    if ($robotCurrentPosCode && isset($racksOnMap[$robotCurrentPosCode])) {
+                        $hasRackAtCurrentPosition = true;
+                    }
+
+                    $robot->robotName = "";
+                    $robotName = $this->robotModel->getDeviceName($robot->robotIp, $robot->robotCode);
+                    if (!empty($robotName)) {
+                        $robot->robotName = $robotName;
+                    }
+
+                    $robot->hasRackAtCurrentPosition = $hasRackAtCurrentPosition;
+
+                    $info = $this->tracker->processRobotData($robot);
+
+                    $robot->statusText = lang("HikrobotStatus.statuses.{$robot->status}");
+                    if ($info) {
+                        $robot->info = $info;
+                    } else {
+                        $robot->info = [];
+                    }
+
+                    $taskData = $this->taskModel->getTaskByCartCode($robot->podCode); 
+                    if(!empty($taskData)) {
+                        $robot->taskData = [
+                            "taskCode"      => $taskData->id,
+                            "taskStamp"     => $taskData->u_kidtaskstamp,
+                            "origin"        => $taskData->ptoori,
+                            "destination"   => $taskData->ptodes
+                        ];
+                    } else {
+                        $robot->taskData = [];
+                    }
+
+                    unset($robot->timestamp);
+                    $robotsData[] = $robot;
+                }
+
+                $currentRobotDataHash = md5(json_encode($robotsData));
+
+                if ($currentRobotDataHash !== $this->lastRobotDataHash) {
+                    $this->lastRobotDataHash = $currentRobotDataHash;
+                    $this->cachedRobotData = $robotsData; // Atualiza o cache
                     $this->broadcast([
-                        'type' => 'robot_update',
+                        'type' => 'robot_data_update',
                         'api_data' => $robotsData,
                         'timestamp' => date('Y-m-d H:i:s')
                     ]);
                 }
-            
+            } else {
+                echo "Error fetching AGV status data: " . json_encode($robotsResponse) . "\n";
             }
         } catch (\Throwable $e) {
-            echo "Polling error: {$e->getMessage()}\n";
+            echo "Exception fetching AGV status data: {$e->getMessage()}\n";
+            // Em produção, considere logar isso mais robustamente
         }
     }
 
-
-    protected function sendInitialData(ConnectionInterface $conn)
+    /**
+     * Envia o status atual do robô para um cliente específico.
+     * Usa o cache para evitar re-poll desnecessário.
+     */
+    protected function sendRobotStatusToClient(ConnectionInterface $conn)
     {
-        helper('utilis_helper');
-        $ws = new WebServiceModel();
-        $kidModel = new DevicesModel();
-        $body = array(
-            "reqCode" => newStamp("QAS"),
-            "mapCode" => "LA"
-        );  
-        
-        $result = $ws->callWebservice(HIKROBOT_QUERY_AGV_STATUS, $body);
-        if($result) {
-            $robotsData = $result->data;
-            //echo json_encode($robotsData);
-            foreach($robotsData as $key => $value) {
-                $robotName = $kidModel->getDeviceName($value->robotIp);
-                $value->robotName = $robotName;
-                $value->statusText = lang("HikrobotStatus.statuses.{$value->status}");
-                
-
-                unset($value->timestamp);
-                $robotData = $value;
-                $info = $this->tracker->processRobotData($robotData);
-                if($info) {
-                    $value->info = $info;
-                } else {
-                    $value->info = [];
-                }
-            }
-
-            $this->broadcast([
-                'type' => 'initial_data',
-                'api_data' => $robotsData,
+        if (!empty($this->cachedRobotData)) {
+            $conn->send(json_encode([
+                'type' => 'robot_data_update',
+                'api_data' => $this->cachedRobotData,
                 'timestamp' => date('Y-m-d H:i:s')
-            ]);
-                   
-        }        
+            ]));
+        } else {
+            // Se o cache estiver vazio (ex: no primeiro cliente), dispara um poll para preencher
+            $this->pollRobotData();
+            // E então tenta enviar novamente após o poll (pode ser assíncrono, então não garante no mesmo ciclo)
+            // Para garantir, você poderia ter um callback ou enviar de dentro do pollRobotData após o primeiro fetch.
+        }
+    }
+
+    /**
+     * Consulta a informação da rack para um posCode específico e envia para um cliente.
+     * @param string $posCode O código da posição a ser verificada (ex: "DP2_101").
+     * @param ConnectionInterface|null $conn A conexão específica para enviar (se nulo, faz broadcast).
+     */
+    protected function queryAndSendRackInfoByPosCode(string $posCode, ?ConnectionInterface $conn = null)
+    {
+        $hasRack = false;
+        $podCode = "";
+        helper('utilis_helper');
+
+        $body = [
+            "reqCode" => newStamp(REQ_CODE_POD_BERTH),
+            "mapShortName" => MAP_SHORT_NAME
+        ];
+
+        try {
+            $podBerthResponse = $this->webserviceModel->callWebservice(HIKROBOT_QUERY_POD_BERTH_MAT, $body);
+
+            if (isset($podBerthResponse->code) && $podBerthResponse->code == '0' && isset($podBerthResponse->data)) {
+                foreach ($podBerthResponse->data as $rackInfo) {
+                    if (isset($rackInfo->posCode) && $rackInfo->posCode === $posCode) {
+                        $hasRack = true;
+                        $podCode = $rackInfo->podCode;
+                        break;
+                    }
+                }
+            } else {
+                echo "Error fetching pod berth data for rack info: " . json_encode($podBerthResponse) . "\n";
+            }
+        } catch (\Throwable $e) {
+            echo "Exception fetching pod berth data for rack info: {$e->getMessage()}\n";
+        }
+
+        $currentRackInfo = ['hasRack' => $hasRack, 'podCode' => $podCode];
+
+        // Verifica se a informação da rack mudou para este posCode antes de enviar
+        if (!isset($this->cachedRackInfo[$posCode]) || $this->cachedRackInfo[$posCode] !== $currentRackInfo) {
+            $this->cachedRackInfo[$posCode] = $currentRackInfo; // Atualiza o cache
+
+            $message = [
+                'type' => 'rack_info_at_pos_code',
+                'posCode' => $posCode,
+                'hasRack' => $hasRack,
+                'podCode' => $podCode,
+                'timestamp' => date('Y-m-d H:i:s')
+            ];
+
+            if ($conn) {
+                // Envia apenas para a conexão específica que solicitou ou está associada
+                $conn->send(json_encode($message));
+            } else {
+                // Faz broadcast para todos os clientes, se não houver conexão específica
+                // (Isso ocorreria se o timer periódico estivesse configurado para broadcast, o que não é o caso agora com SplObjectStorage)
+                $this->broadcast($message);
+            }
+        }
     }
 
     protected function broadcast(array $message)
@@ -161,7 +358,7 @@ class HikrobotWebSocketServer implements MessageComponentInterface
     }
 
     public static function runServer()
-    {   
+    {
         $config     = new \Config\WebSocket;
         $addressToListen  = $config->addressToListen;
         $portToListen     = $config->portToListen;
@@ -169,13 +366,12 @@ class HikrobotWebSocketServer implements MessageComponentInterface
         $loop = Loop::get();
         $server = new IoServer(
             new HttpServer(
-                new WsServer(new self($loop))
+                new WsServer(new self($loop)) // Passa o loop para o construtor
             ),
             new SocketServer("{$addressToListen}:{$portToListen}", [], $loop),
             $loop
         );
 
-        echo "WebSocket server running on ws://{$addressToListen}:{$portToListen}...\n";
         $loop->run();
     }
 }

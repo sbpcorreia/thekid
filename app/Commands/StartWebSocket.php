@@ -14,7 +14,7 @@ class StartWebSocket extends BaseCommand
 
     public function run(array $params)
     {
-        CLI::write("Starting WebSocket Server...", 'green');
+        CLI::write("A arrancar servidor WebSocket...", "yellow");
         HikrobotWebSocketServer::runServer();
     }
 }

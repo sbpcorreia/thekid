@@ -9,7 +9,7 @@
             </div>
         </div>
         <div class="col-xs-12 col-md-6">
-<?= view_cell("App\Controllers\Home::loadTaskArea", array("terminalCode" => $terminalCode, "company" => $company)); ?>
+<?= view_cell("App\Controllers\Home::loadTaskArea", array("terminalCode" => $terminalCode, "company" => $company, "origin" => $origin)); ?>
         </div>
     </div>
 </div>

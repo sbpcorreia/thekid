@@ -12,10 +12,13 @@ class DevicesModel extends Model {
 
     protected $allowedFields = ["u_kiddevsstamp", "ip", "code", "nome", "ousrinis", "ourdata", "ousrhora", "usrinis", "usrdata", "usrhora"];
 
-    public function getDeviceName($deviceIp) {
+    public function getDeviceName($deviceIp, $deviceCode = "") {
         $builder = $this->db->table($this->table);
         $builder->select("nome");
         $builder->where("ip", $deviceIp);
+        if(!empty($deviceCode)) {
+            $builder->orWhere("code", $deviceCode);
+        }
         $query = $builder->get();
         $result = $query->getRow();
         if(!empty($result)) {

@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Models;
+
+use CodeIgniter\Model;
+use stdClass;
+
+class CartsModel extends Model {
+    protected $table = "u_kidcart";
+
+    protected $primaryKey = "u_kidcartstamp";
+
+    protected $allowedFields = ["u_kidcartstamp", "codigo", "descricao", "ousrinis", "ousrdata", "ousrhora", "usrinis", "usrdata", "usrhora"];
+
+    public function countData($columns, $search = "", $searchColumn = "") : int {
+        $builder = $this->db->table($this->table);
+        $builder->selectCount("u_kidcartstamp", "count");
+        if(!empty($search)) {
+            if($searchColumn == "global") {
+                foreach($columns as $key => $value) {
+                    if($key == 0) {
+                        $builder->like($columns[$key], $search, "both");
+                    } else {
+                        $builder->orLike($columns[$key], $search, "both");
+                    }
+                }
+            } else {
+                $builder->like($searchColumn, $searchColumn);
+            }
+        }
+        $query = $builder->get();
+        $res = $query->getRow();
+        return $res->count;
+    }
+
+    public function getData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "asc") {
+        $builder = $this->db->table($this->table);
+        $builder->select("u_kidcartstamp AS id, codigo, descricao", false);
+
+        if(!empty($search)) {
+            if($searchColumn == "global") {
+                foreach($columns as $key => $value) {
+                    if($key == 0) {
+                        $builder->like($columns[$key], $search, "both");
+                    } else {
+                        $builder->orLike($columns[$key], $search, "both");
+                    }
+                }
+            } else {
+                $builder->like($searchColumn, $searchColumn);
+            }
+        }
+        if(!empty($sortColumn)) {
+            $builder->orderBy($sortColumn, $sortDirection);
+        }    
+
+        $query = $builder->get($pageSize, ($pageSize) * ($page-1));
+        return $query->getResult();        
+    }
+}

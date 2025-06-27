@@ -95,12 +95,13 @@ abstract class BaseController extends Controller
 				'Alertify'					=> site_url('/assets/js/alertify.min.js'),
                 'OnScan JS'                 => site_url("/assets/js/onscan.js"),
                 'GridJs'                    => site_url('/assets/js/gridjs.production.min.js')
-                //'RobotUI'                   => site_url("/assets/js/robot-ui.js")
 			),
 			'footerJs' => array(
                 'SolidBridgeVKeyboard'      => site_url('/assets/js/sb-virtual-keyboard.js'),
                 'SolidBridgePopupMenu'      => site_url('/assets/js/sb-popup-menu.js'),
 				'Bootstrap Toaster' 		=> site_url('/assets/js/bootstrap-toaster.min.js'),
+                'SolidBridgeBrowlist'       => site_url('/assets/js/sb-browlist.js'),
+                'SolidBridgeModalManager'   => site_url('/assets/js/sb-modal-manager.js'),
 				'Site JS' 					=> site_url('/assets/js/site.js'),	
 			),
 		);
