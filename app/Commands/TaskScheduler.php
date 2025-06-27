@@ -77,7 +77,7 @@ class TaskScheduler extends BaseCommand
         );
 
         try {           
-            //$responseData = $this->webserviceModel->callWebservice(HIKROBOT_GEN_AGV_SCHEDULING_TASK, $requestData);
+            $responseData = $this->webserviceModel->callWebservice(HIKROBOT_GEN_AGV_SCHEDULING_TASK, $requestData);
             $responseData = new stdClass();
             $responseData->code = 0;
             if(isset($responseData->code) && $responseData->code === '0') {
@@ -107,9 +107,7 @@ class TaskScheduler extends BaseCommand
         );
 
         try {
-            //$responseData = $this->webserviceModel->callWebservice(HIKROBOT_GEN_AGV_SCHEDULING_TASK, $requestData);
-            $responseData = new stdClass();
-            $responseData->code = 0;
+            $responseData = $this->webserviceModel->callWebservice(HIKROBOT_GEN_AGV_SCHEDULING_TASK, $requestData);
             if (isset($responseData->code) && $responseData->code === '0') {
                 $status = $responseData->data->taskStatus ?? '0';
                 $logger->info("Task " . $taskStamp . " status updated to: " . $status . ". ReqCode: " . $requestData['reqCode']);
