@@ -859,9 +859,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 const hasValue = (this.value != '');
 
                 if(hasValue) {
-                    rackCodeSpan.value = this.value;
+                    rackCodeSpan.innerText = this.value;
                 } else {
-                    rackCodeSpan.value = "";
+                    rackCodeSpan.innerText = "- Não definido -";
                 }
             });
         }
