@@ -11,7 +11,7 @@
             </div>
             
             <div class="col-auto">
-                <a href="#" class="link-dark" data-bs-toggle="tooltip" title="Histórico">
+                <a href="#" class="link-dark" data-bs-toggle="tooltip" title="Histórico" id="show-task-history">
                     <i class="bi bi-clock-history"></i>
                 </a>
             </div>

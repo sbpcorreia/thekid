@@ -485,6 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const rackCodeEl = document.getElementById('cart-code');
                     if(rackCodeEl) {
                         rackCodeEl.value = barcodeData;
+                        rackCodeEl.dispatchEvent(new Event("change"));
                     }
                 } else {
                     buildItem(type, company, data.data);
@@ -650,6 +651,51 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         ];
 
+        const historyColumns = [
+            {
+                field : 'id',
+                title : '# tarefa',
+                sortable : true,
+                searchable : true
+            },
+            {
+                field : 'carrinho',
+                title : 'Carrinho',
+                sortable : true,
+                searchable : true
+            },
+            {
+                field : 'data',
+                title : 'Data',
+                sortable : true,
+                searchable : true
+            },
+            {
+                field : 'hora',
+                title : 'Hora',
+                sortable : true,
+                searchable : true
+            },
+            {
+                field : 'estado',
+                title : 'Estado',
+                sortable : true,
+                searchable : true
+            },
+            {
+                field: 'ptoori',
+                title : 'Origem',
+                sortable :true,
+                searchable : true
+            },
+            {
+                field : 'ptodes',
+                title : 'Destino',
+                sortable : true,
+                searchable : true
+            }
+        ];
+
         const openOffcanvasTrigger = document.getElementById('open-config-section');
         const offcanvasRestrictedArea = new bootstrap.Offcanvas(document.getElementById('config-section'));
 
@@ -663,6 +709,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const newTaskFrm = document.getElementById("new-task");
         const itemArea = document.getElementById("item-collection");
         const mapButton = document.getElementById("robot-map");
+        const showHistoryButton = document.getElementById("show-task-history");
         const correctPassword = "Lanema123";
         
 
@@ -739,6 +786,28 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
+        const historyBrowlist = new Browlist({
+                hideSelectionColumn : true,
+                modalTitle : 'Histórico de tarefas',
+                dataSource : `${sbData.site_url}tableData`,
+                additionalParams : {
+                    columnsToShow : historyColumns,
+                    requestType : "TASKHISTORY"
+                },
+                httpMethod: 'POST',
+                columns: historyColumns, // Reutiliza as colunas definidas
+                pageSize: 10,
+                searchable: true,
+                sortable: true,
+        });
+
+        if(showHistoryButton) {
+            showHistoryButton.addEventListener("click", async (e) => {
+                
+                historyBrowlist.open();
+            });
+        }
+
         if(configForm) {
             configForm.addEventListener("submit", async (e) => { // Use 'async' para await se for o caso
                 e.preventDefault();
@@ -779,10 +848,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
         }        
-
-        
-
-        
 
         if(rackCodeEl) {
             rackCodeEl.addEventListener("change", (e) => {

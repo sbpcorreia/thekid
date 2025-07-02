@@ -138,8 +138,6 @@
             /* Header do teclado */
             #virtual-keyboard .vk-header {
               cursor: move;
-
-
               padding: var(--bs-rem) var(--bs-spacer); /* Bootstrap spacing */
               font-weight: var(--bs-font-weight-semibold);
               border-top-left-radius: var(--bs-border-radius-lg);
@@ -208,8 +206,14 @@
                 font-size: 12px;
                 opacity: 0.7;
             }
-            .vk-key-label .upper { top: 4px; left: 6px; }
-            .vk-key-label .altgr { bottom: 4px; right: 6px; }
+            .vk-key-label .upper { 
+                top: 0px; 
+                left: 0px; 
+            }
+            .vk-key-label .altgr { 
+                bottom: 0px; 
+                right: 0px; 
+            }
             .vk-key-label .lower {
                 font-size: 18px;
                 font-weight: var(--bs-font-weight-bold);
@@ -311,8 +315,8 @@
                     const label = document.createElement('div');
                     label.className = 'vk-key-label';
                     label.innerHTML = `
-                        <span class="upper">${key.upper || ''}</span>
-                        <span class="lower">${key.lower || ''}</span>
+                        <span class="upper">${(key.upper.valueOf().toUpperCase() === key.lower.valueOf().toUpperCase() ? '' : (key.upper || ''))}</span>
+                        <span class="lower">${(this.shift && key.upper.valueOf().toUpperCase() === key.lower.valueOf().toUpperCase() ? key.upper : (key.lower || ''))}</span>
                         <span class="altgr">${key.altgr || ''}</span>
                     `;
 
@@ -331,6 +335,9 @@
                     if (key.key === 'Backspace' || key.key === 'Enter') {
                         btn.classList.remove('btn-light');
                         btn.classList.add('btn-secondary'); // Estilo diferente para Backspace/Enter
+                    }
+                    if(key.key === "Enter") {
+                        btn.classList.add("enter-double");
                     }
 
                     if (['Shift', 'CapsLock', 'Tab'].includes(key.key)) btn.classList.add('col-span-2'); // Estilo wide customizado
@@ -356,6 +363,7 @@
             if (!this.currentInput) return;
 
             const specialKeys = ['CapsLock', 'Shift', 'Control', 'Alt', 'AltGraph', 'Backspace', 'Enter', 'Tab', ' '];
+            let dispatchInputEvents = false;
 
             if (key.key === 'Backspace') {
                 this.currentInput.value = this.currentInput.value.slice(0, -1);
@@ -378,10 +386,12 @@
                 this.ctrl = true;
                 this.alt = true;
                 this.renderKeys();
-            } else if (key.key === 'Tab') {
+            } else if (key.key === 'Tab') {                
                 this.currentInput.value += '\t';
+                dispatchInputEvents = true;
             } else if (key.key === ' ') {
                 this.currentInput.value += ' ';
+                dispatchInputEvents = true;
             } else {
                 let char = key.lower;
                 if (this.ctrl && this.alt && key.altgr) {
@@ -390,11 +400,17 @@
                     char = key.upper;
                 }
                 this.currentInput.value += char;
+                dispatchInputEvents = true;        
 
                 if (this.shift && !specialKeys.includes(key.key)) {
                     this.shift = false;
                     this.renderKeys();
                 }
+            }
+
+            if(dispatchInputEvents) {
+                const inputEvent = new Event('input', { bubbles: true });
+                this.currentInput.dispatchEvent(inputEvent);
             }
 
             if (this.ctrl || this.alt) {
@@ -405,7 +421,7 @@
                 }
             }
 
-            this.currentInput.focus();
+            //this.currentInput.focus();
         }
 
         getCurrentLayout() {
