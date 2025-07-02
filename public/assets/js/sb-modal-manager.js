@@ -1,87 +1,107 @@
 class SBModalManager {
     constructor() {
         this.modalElement = null;
+        // Adiciona uma promessa para encadear as chamadas de modal
+        this.currentPromise = Promise.resolve(); 
     }
 
-    // Método interno para criar e abrir a modal
+    /**
+     * Método interno para criar e abrir a modal.
+     * Agora retorna uma Promessa que resolve quando a modal está completamente escondida e removida do DOM.
+     * @param {object} options - Opções para a modal.
+     */
     _openModal({
         title,
         content,
         buttons = [],
         showDefaultCloseButton = true
     }) {
-        this.removeModalFromDOM();
+        // Encadeia a nova abertura de modal após a resolução da promessa anterior
+        this.currentPromise = this.currentPromise.then(() => {
+            return new Promise(resolve => {
+                this.removeModalFromDOM(); // Garante que qualquer modal anterior é limpa
 
-        this.modalElement = document.createElement('div');
-        this.modalElement.classList.add('modal', 'fade');
-        this.modalElement.setAttribute('tabindex', '-1');
-        this.modalElement.setAttribute('aria-labelledby', 'dynamicModalLabel');
-        this.modalElement.setAttribute('aria-hidden', 'true');
-        this.modalElement.setAttribute('data-bs-backdrop', 'static');
-        this.modalElement.setAttribute('data-bs-keyboard', 'false');
+                this.modalElement = document.createElement('div');
+                this.modalElement.classList.add('modal', 'fade');
+                this.modalElement.setAttribute('tabindex', '-1');
+                this.modalElement.setAttribute('aria-labelledby', 'dynamicModalLabel');
+                this.modalElement.setAttribute('aria-hidden', 'true');
+                this.modalElement.setAttribute('data-bs-backdrop', 'static');
+                this.modalElement.setAttribute('data-bs-keyboard', 'false');
 
-        this.modalElement.innerHTML = `
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="dynamicModalLabel">${title}</h5>
-                        ${showDefaultCloseButton ? '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' : ''}
-                    </div>
-                    <div class="modal-body">
-                        ${content}
-                    </div>
-                    <div class="modal-footer">
+                this.modalElement.innerHTML = `
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="dynamicModalLabel">${title}</h5>
+                                ${showDefaultCloseButton ? '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' : ''}
+                            </div>
+                            <div class="modal-body">
+                                ${content}
+                            </div>
+                            <div class="modal-footer">
+                                </div>
                         </div>
-                </div>
-            </div>
-        `;
+                    </div>
+                `;
 
-        document.body.appendChild(this.modalElement);
+                document.body.appendChild(this.modalElement);
 
-        const modalFooter = this.modalElement.querySelector('.modal-footer');
-        buttons.forEach(button => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.classList.add('btn', `btn-${button.variant || 'secondary'}`);
-            if (button.dataBsDismiss) {
-                btn.setAttribute('data-bs-dismiss', button.dataBsDismiss);
-            }
-            let buttonContent = '';
-            if (button.icon) {
-                buttonContent += `<i class="${button.icon} me-2"></i>`;
-            }
-            buttonContent += button.text;
-            btn.innerHTML = buttonContent;
-
-            if (button.action && typeof button.action === 'function') {
-                btn.addEventListener('click', () => {
-                    button.action();
-                    // Fechar a modal se não for um botão de "dismiss"
-                    if (!button.dataBsDismiss) {
-                        this.closeModal();
+                const modalFooter = this.modalElement.querySelector('.modal-footer');
+                buttons.forEach(button => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.classList.add('btn', `btn-${button.variant || 'secondary'}`);
+                    if (button.dataBsDismiss) {
+                        btn.setAttribute('data-bs-dismiss', button.dataBsDismiss);
                     }
-                });
-            }
-            modalFooter.appendChild(btn);
-        });
+                    let buttonContent = '';
+                    if (button.icon) {
+                        buttonContent += `<i class="${button.icon} me-2"></i>`;
+                    }
+                    buttonContent += button.text;
+                    btn.innerHTML = buttonContent;
 
-        const bsModal = new bootstrap.Modal(this.modalElement);
-        this.modalElement.addEventListener('hidden.bs.modal', () => {
-            this.removeModalFromDOM();
+                    if (button.action && typeof button.action === 'function') {
+                        btn.addEventListener('click', () => {
+                            // Se o botão tem uma ação, execute-a.
+                            // A lógica de fecho da modal é movida para a promessa nos métodos de conveniência.
+                            button.action(); 
+                        });
+                    }
+                    modalFooter.appendChild(btn);
+                });
+
+                const bsModal = new bootstrap.Modal(this.modalElement);
+                this.modalElement.addEventListener('hidden.bs.modal', () => {
+                    this.removeModalFromDOM();
+                    resolve(); // Resolve a promessa quando a modal é completamente escondida e removida
+                });
+                bsModal.show();
+            });
         });
-        bsModal.show();
     }
 
     /**
      * Fecha a modal se ela estiver aberta.
+     * Agora retorna uma Promessa que resolve quando a modal estiver completamente fechada.
      */
     closeModal() {
         if (this.modalElement) {
             const bsModal = bootstrap.Modal.getInstance(this.modalElement);
             if (bsModal) {
-                bsModal.hide();
+                // Criar e retornar uma nova Promessa que resolve no evento hidden.bs.modal
+                return new Promise(resolve => {
+                    // Usa { once: true } para remover o listener automaticamente após o primeiro evento
+                    this.modalElement.addEventListener('hidden.bs.modal', function handler() {
+                        this.removeEventListener('hidden.bs.modal', handler); // Garantia de remoção
+                        resolve();
+                    }, { once: true }); 
+                    bsModal.hide();
+                });
             }
         }
+        return Promise.resolve(); // Se não houver modal para fechar, retorna uma promessa já resolvida
     }
 
     /**
@@ -111,7 +131,8 @@ class SBModalManager {
                 text: 'OK',
                 icon: 'bi-check-circle',
                 variant: 'primary',
-                action: () => {
+                action: async () => { // Usar async aqui
+                    await this.closeModal(); // Esperar a modal fechar completamente
                     if (onOk) onOk();
                 }
             }]
@@ -134,14 +155,16 @@ class SBModalManager {
                 text: 'Sim',
                 icon: 'bi-check-lg',
                 variant: 'success',
-                action: () => {
+                action: async () => { // Usar async
+                    await this.closeModal(); // Esperar a modal fechar completamente
                     if (onConfirm) onConfirm();
                 }
             }, {
                 text: 'Não',
                 icon: 'bi-x-lg',
                 variant: 'danger',
-                action: () => {
+                action: async () => { // Usar async
+                    await this.closeModal(); // Esperar a modal fechar completamente
                     if (onCancel) onCancel();
                 }
             }]
@@ -155,8 +178,10 @@ class SBModalManager {
      * @param {Function} [onOk=null] - Callback para quando o botão OK for clicado. Recebe o valor do input como argumento.
      * @param {Function} [onCancel=null] - Callback para quando o botão Cancelar for clicado.
      * @param {string} [title='Entrada Necessária'] - O título da modal.
+     * @param {string} [inputType="text"] - O tipo do campo de entrada (e.g., 'text', 'password', 'number').
+     * @param {object} [inputAttributes=[]] - Um objeto de atributos adicionais para o campo de entrada.
      */
-    prompt(message, defaultValue = '', onOk = null, onCancel = null, title = 'Entrada Necessária', inputType = "text", inputAttributes = []) {
+    prompt(message, defaultValue = '', onOk = null, onCancel = null, title = 'Entrada Necessária', inputType = "text", inputAttributes = {}) {
         const inputId = `promptInput-${Date.now()}`;
 
         let attributesString = '';
@@ -186,15 +211,17 @@ class SBModalManager {
                 text: 'OK',
                 icon: 'bi-check-circle',
                 variant: 'primary',
-                action: () => {
+                action: async () => { // Usar async
                     const inputValue = document.getElementById(inputId).value;
+                    await this.closeModal(); // Esperar a modal fechar completamente
                     if (onOk) onOk(inputValue);
                 }
             }, {
                 text: 'Cancelar',
                 icon: 'bi-x-lg',
                 variant: 'secondary',
-                action: () => {
+                action: async () => { // Usar async
+                    await this.closeModal(); // Esperar a modal fechar completamente
                     if (onCancel) onCancel();
                 }
             }]

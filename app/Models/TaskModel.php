@@ -29,6 +29,52 @@ class TaskModel extends Model {
         return $query->getResultArray();
     }
 
+    public function getPendingTasksCount($columns, $search = "", $searchColumn = "") {
+        $builder = $this->db->table($this->table);
+        $builder->selectCount("u_kidtaskstamp", "count");
+        $builder->whereNotIn("estado", array(9,99));
+        if(!empty($search)) {
+            if($searchColumn == "global") {
+                foreach($columns as $key => $value) {
+                    if($key == 0) {
+                        $builder->like($columns[$key], $search, "both");
+                    } else {
+                        $builder->orLike($columns[$key], $search, "both");
+                    }
+                }
+            } else {
+                $builder->like($searchColumn, $searchColumn);
+            }
+        }
+        $query = $builder->get();
+        $res = $query->getRow();
+        return $res->count;
+    }
+
+    public function getPendingTasksData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "asc") {
+        $builder = $this->db->table($this->table);
+        $builder->select("u_kidtaskstamp, id, CONVERT(DATE, data, 104) AS data, hora, carrinho, ponto1.ponto AS ptoori, ponto2.ponto AS ptodes, estado, prioridade");
+        $builder->join("u_kidspots AS ponto1", "ponto1.ponto=u_kidtask.ptoori", "left");
+        $builder->join("u_kidspots AS ponto2", "ponto2.ponto=u_kidtask.ptodes", "left");
+        if(!empty($search)) {
+            if($searchColumn == "global") {
+                $builder->groupStart();
+                foreach($columns as $key => $value) {
+                    $builder->orLike($columns[$key], $search, "both");                    
+                }
+                $builder->groupEnd();
+            } else {
+                $builder->like($searchColumn, $searchColumn);
+            }
+        }
+        if(!empty($sortColumn)) {
+            $builder->orderBy($sortColumn, $sortDirection);
+        }    
+        $query = $builder->get($pageSize, ($pageSize) * ($page-1));
+        return $query->getResult();  
+    }
+
+
     public function getCreatedTasks() {
         $builder = $this->db->table($this->table);
         $builder->whereIn("estado", array(99));

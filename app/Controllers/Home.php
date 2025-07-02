@@ -56,7 +56,8 @@ class Home extends BaseController
 
         $this->pageData["javascriptData"] = array(
             "site_url"  => site_url(),
-            "ws_url"    => sprintf("ws://%s:%d", $addressToListen, $portToListen)
+            "ws_url"    => sprintf("ws://%s:%d", $addressToListen, $portToListen),
+            "pwd"       => base64_encode("Lanema123")
         );
 
         $this->navbarData["terminalCode"] = $terminalCode;
@@ -148,6 +149,34 @@ class Home extends BaseController
             $data = $this->cutOrdersModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
         } else if($requestType === "ORDER") {
             // TO WORK
+        } else if($requestType === "TASKHISTORY") {
+            $status = array(
+                "99" => "Lançada",
+                "0" => "Exceção ao enviar",
+                "1" => "Criada no robot",
+                "2" => "A executar",
+                "3" => "A enviar",
+                "4" => "A cancelar",
+                "5" => "Cancelada",
+                "6" => "A reenviar",
+                "9" => "Concluída",
+                "10" => "Interrompida"
+            );
+
+            $priorityNames = array(
+                "1" => "Prioritária",
+                "10" => "Normal"
+            );
+
+            $totalRecords = $this->taskModel->getPendingTasksCount($columnsToShow, $search, $searchColumn);
+            $data = $this->taskModel->getPendingTasksData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
+
+            if(!empty($data)) {
+                foreach($data as $key => $value) {
+                    $data[$key]->estado = $status[$data[$key]->estado];
+                    $data[$key]->prioridade = $priorityNames[$data[$key]->prioridade];
+                }
+            }
         }
         return $this->response->setJSON([
             "type" => "success",
@@ -243,8 +272,8 @@ class Home extends BaseController
         ]);
     }    
 
-    public function getUnloadLocations() : ResponseInterface {
-        $unloadSpots = $this->spotsModel->getUnloadLocations();
+    public function getUnloadLocations($unloadLocation = "") : ResponseInterface {
+        $unloadSpots = $this->spotsModel->getUnloadLocations($unloadLocation);
         return $this->response->setJSON($unloadSpots); 
     }
 
@@ -312,6 +341,7 @@ class Home extends BaseController
         $cartCode = $request->getPost("cartCode");
         $company = $request->getPost("company");
         $taskLines = $request->getPost("taskd");
+        $priority = $request->getPost("priority");
 
         if(!$terminalCode) {
             return $this->response->setJSON([
@@ -327,8 +357,10 @@ class Home extends BaseController
             ]);
         }
 
+        $priority = strval($priority) ?? "10";
+
         $taskStamp = newStamp("TSK");
-        $result = $this->taskModel->addNewTask($taskStamp, $cartCode, $origin, $destination, 10, "TSK");
+        $result = $this->taskModel->addNewTask($taskStamp, $cartCode, $origin, $destination, $priority, "TSK");
         if(!$result) {
             return $this->response->setJSON([
                 "type" => "error",

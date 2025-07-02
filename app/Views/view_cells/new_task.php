@@ -55,7 +55,7 @@
                     <i class="bi bi-send"></i>
                     <span>Enviar</span>
                 </button>
-                <button class="btn btn-success btn-lg rounded-pill d-none" id="send-priority-to-robot" name="action" value="sendUrgent" type="submit">
+                <button class="btn btn-success btn-lg rounded-pill" id="send-priority-to-robot" name="action" value="sendUrgent" type="submit">
                     <i class="bi bi-send"></i>
                     <span>Enviar urgente</span>
                 </button>

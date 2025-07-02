@@ -670,7 +670,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const mapButton = document.getElementById("robot-map");
         const showHistoryButton = document.getElementById("show-task-history");
         const cancelButton = document.getElementById("cancel-task");
-        const correctPassword = "Lanema123";
+        const correctPassword = sbData.pwd;
         
 
         if (typeof Browlist === 'undefined') {
@@ -689,7 +689,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 'Por favor, introduza a senha de acesso:', // Mensagem
                 '', // Valor padrão (vazio)
                 (inputValue) => { // Callback para quando o botão OK é clicado
-                    if (inputValue === correctPassword) {
+                    if (btoa(inputValue) === correctPassword) {
                         offcanvasRestrictedArea.show(); // Abre a offcanvas
                     } else {
                         Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
@@ -759,33 +759,23 @@ document.addEventListener("DOMContentLoaded", () => {
         const browlistModal = new Browlist({
             multipleSelection: false,
             modalTitle: 'Selecionar carrinho',
-            dataSource: `${sbData.site_url}tableData`, // Certifique-se que sbData está disponível no escopo
+            dataSource: `${sbData.site_url}tableData`, 
             additionalParams: {
                 columnsToShow: browlistColumns,
                 requestType: 'CART',
             },
             httpMethod: 'POST',
-            columns: browlistColumns, // Reutiliza as colunas definidas
+            columns: browlistColumns, 
             pageSize: 10,
             searchable: true,
             sortable: true,
             onSave: (selectedRecords) => {
                 if (selectedRecords && selectedRecords[0].codigo) {
-                    console.log(selectedRecords[0].codigo);
-                    // rackCodeEl e rackCodeSpan devem ser os elementos corretos que você quer atualizar.
-                    // Certifique-se que 'rackCodeEl' é o input de valor e 'rackCodeSpan' é o elemento de exibição.
                     if (rackCodeEl) {
                         rackCodeEl.value = selectedRecords[0].codigo;
+                        rackCodeEl.dispatchEvent(new Event("change"));
                     } else {
                         console.warn("Elemento 'rackCodeEl' não encontrado para atualizar o valor.");
-                    }
-                
-                    if (rackCodeSpan) {
-                        rackCodeSpan.innerText = selectedRecords[0].codigo;
-                        // Se rackCodeSpan for um <input>, use .value em vez de .innerText
-                        // rackCodeSpan.value = selectedRecords.codigo;
-                    } else {
-                        console.warn("Elemento 'rackCodeSpan' não encontrado para atualizar o texto.");
                     }
                 }
             }
@@ -800,7 +790,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     requestType : "TASKHISTORY"
                 },
                 httpMethod: 'POST',
-                columns: historyColumns, // Reutiliza as colunas definidas
+                columns: historyColumns, 
                 pageSize: 10,
                 searchable: true,
                 sortable: true,
@@ -856,15 +846,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if(rackCodeEl) {
             rackCodeEl.addEventListener("change", (e) => {
-
                 const hasValue = (e.target.value != '');
 
                 if(hasValue) {
                     rackCodeSpan.innerText = e.target.value;
                 } else {
                     rackCodeSpan.innerText = "- Não definido -";
-                    //updateMainFormUI();
                 }
+                updateMainFormUI();
             });
         }
 
@@ -891,6 +880,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 e.preventDefault();
                 e.stopPropagation();
                 const formData = new FormData(newTaskFrm);
+                let priority = false;
+                const botaoSubmetido = e.submitter;
 
                 if(rackToUnloadEl.value !== "") {
                     Toast.create("Aviso", "Não é possível enviar a tarefa enquando o carrinho não for descarregado!", TOAST_STATUS.WARNING, 5000);
@@ -906,9 +897,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                
-                showUnloadLocationsSelectionModal(formData);
-                
+                if(botaoSubmetido.value === "sendUrgent") {
+                    priority = true;
+                }                
+                showUnloadLocationsSelectionModal(formData, priority);                
             });
         }
 
@@ -916,7 +908,9 @@ document.addEventListener("DOMContentLoaded", () => {
             cancelButton.addEventListener("click", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                resetForm();
+                SbModal.confirm("Deseja cancelar a tarefa?", (e) => {
+                    resetForm();
+                });                
             });
         }
         
@@ -926,28 +920,35 @@ document.addEventListener("DOMContentLoaded", () => {
         const rackCodeEl = document.getElementById("cart-code");
         const itemsElement = document.getElementById("item-collection");
         const sendButton = document.getElementById("send-to-robot");
-        const sendUrgentButton = document.getElementById("send-urgent-to-robot")
+        const sendUrgentButton = document.getElementById("send-priority-to-robot")
         const cancelButton = document.getElementById("cancel-task");
 
-        if(rackCodeEl && itemsElement) {
-            if(rackCodeEl.value != "" || itemsElement.childNodes.length > 0) {
+        if(rackCodeEl && sendButton && sendUrgentButton && cancelButton) {
+            if(rackCodeEl.value == "" && itemsElement.childElementCount == 0) {
+                console.log("inativo");
                 sendButton.setAttribute("disabled", "disabled");
                 sendUrgentButton.setAttribute("disabled", "disabled");
                 cancelButton.setAttribute("disabled", "disabled");
             } else {
+                console.log("ativo");
                 sendButton.removeAttribute("disabled");
                 sendUrgentButton.removeAttribute("disabled");
                 cancelButton.removeAttribute("disabled");
             }
-        }
+        }       
     }
 
     // Simulação de uma API
     async function fetchDestinationsFromAPI() {
         const apiUrl = `${sbData.site_url}unloadLocations`; // O seu endpoint da API
+        const unloadAreaEl = document.getElementById("unloadArea");
+        let unloadArea = "";
+        if(unloadAreaEl) {
+            unloadArea = unloadAreaEl.value;
+        }
 
         try {
-            const response = await fetch(apiUrl, {
+            const response = await fetch(apiUrl + `/${unloadArea}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -971,7 +972,42 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    async function showUnloadLocationsSelectionModal(formData) {
+    async function showUnloadLocationsSelectionModal(formData, priority) {
+        
+       
+        if(priority) {
+            let correctPassword = sbData.pwd;
+            SbModal.prompt(
+                'Por favor, introduza a senha de acesso:', // Mensagem
+                '', // Valor padrão (vazio)
+                async (inputValue) => { // Callback para quando o botão OK é clicado
+                    if (btoa(inputValue) === correctPassword) {
+                        formData.append("priority", 1);
+                        chooseLocation(formData);                        
+                    } else {
+                        Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
+                        SbModal.closeModal();
+                        return false;
+                    }
+                },
+                undefined,
+                'Acesso Restrito', // Título do prompt,
+                'password',
+                {
+                    "data-vk" : "",
+                }
+            );
+        } else {
+            chooseLocation(formData);
+        }
+
+        // Opções de botões para a modal
+        
+
+        
+    }
+
+    async function chooseLocation(formData) {
         const selectId = `categorySelect-${Date.now()}`; // ID único para o select
 
         // HTML inicial da modal com um select vazio e um placeholder
@@ -981,8 +1017,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <option value="">A carregar locais...</option>
             </select>
         `;
-
-        // Opções de botões para a modal
+        
         const buttons = [
             {
                 text: 'Selecionar local',
@@ -1032,7 +1067,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // --- Parte onde o fetch e o preenchimento acontecem ---
         try {
             const categories = await fetchDestinationsFromAPI(); // Faz a requisição à API
-
+        
             const selectElement = document.getElementById(selectId);
             if (selectElement) {
                 selectElement.innerHTML = '<option value=""></option>'; // Limpa e adiciona a opção padrão
@@ -1318,7 +1353,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (cardToRemove.parentNode) { // Verifica se ainda tem um pai antes de tentar remover
                         cardToRemove.remove();
-                        //updateMainFormUI();
+                        updateMainFormUI();
                     }
                     
                 }, {
@@ -1340,6 +1375,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (target) {
             target.appendChild(itemCard);
         }
+        updateMainFormUI();
     }
 
     function loadItemData(type) {
@@ -1469,16 +1505,10 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    const keyboard = new VirtualKeyboard({
-      language: 'pt',
-      onValidate: (value, input) => {
-        console.log(`Valor inserido no campo ${input.placeholder}:`, value);
-        // Aqui podes atualizar estado, enviar para API, etc.
-      }
-    });
+
 
     attachEvents();
     connectWebSocket();
-    //updateMainFormUI();
+    updateMainFormUI();
     
 });
