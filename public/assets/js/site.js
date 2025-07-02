@@ -855,10 +855,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if(rackCodeEl) {
             rackCodeEl.addEventListener("change", (e) => {
                 console.log(e);
-                const hasValue = e.target.value !== '';
+                const hasValue = (this.value != '');
 
                 if(hasValue) {
-                    rackCodeSpan.value = e.target.value;
+                    rackCodeSpan.value = this.value;
                 } else {
                     rackCodeSpan.value = "";
                 }
