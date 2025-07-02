@@ -856,10 +856,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if(rackCodeEl) {
             rackCodeEl.addEventListener("change", (e) => {
 
-                const hasValue = (this.value != '');
+                const hasValue = (e.target.value != '');
 
                 if(hasValue) {
-                    rackCodeSpan.innerText = this.value;
+                    rackCodeSpan.innerText = e.target.value;
                 } else {
                     rackCodeSpan.innerText = "- Não definido -";
                 }
