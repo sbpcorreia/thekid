@@ -68,6 +68,7 @@ class CartsModel extends Model {
     public function getDataByCode($cartCode) {
         $builder = $this->db->table($this->table);
         $builder->select("u_kidcartstamp AS id, codigo, descricao", false);
+        $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo", "left");
         $builder->where("u_kidcart.codigo", $cartCode);
         $builder->groupStart();
         $builder->whereIn("u_kidtask.estado", array(9));
