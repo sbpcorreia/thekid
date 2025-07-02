@@ -440,7 +440,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if(company === "") return;
         
-        if (inputString.startsWith("R") && inputString.length === 5 && !isNaN(inputString.substring(1))) {
+        if (inputString.startsWith("R") && inputString.length === 6) {
             type = "CART";
             data = inputString;
             console.log("Carrinho detetado: " + inputString);
