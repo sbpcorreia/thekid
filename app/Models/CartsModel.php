@@ -29,8 +29,10 @@ class CartsModel extends Model {
             }
         }
         $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo", "left");
+        $builder->groupStart();
         $builder->whereIn("u_kidtask.estado", array(9));
         $builder->orWhere("u_kidtask.u_kidtaskstamp IS NULL", "", false);
+        $builder->groupEnd();
         $query = $builder->get();
         $res = $query->getRow();
         return $res->count;
@@ -55,9 +57,23 @@ class CartsModel extends Model {
             $builder->orderBy($sortColumn, $sortDirection);
         }    
         $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo", "left");
+        $builder->groupStart();
         $builder->whereIn("u_kidtask.estado", array(9));
         $builder->orWhere("u_kidtask.u_kidtaskstamp IS NULL", "", false);
+        $builder->groupEnd();
         $query = $builder->get($pageSize, ($pageSize) * ($page-1));
         return $query->getResult();        
+    }
+
+    public function getDataByCode($cartCode) {
+        $builder = $this->db->table($this->table);
+        $builder->select("u_kidcartstamp AS id, codigo, descricao", false);
+        $builder->where("u_kidcart.codigo", $cartCode);
+        $builder->groupStart();
+        $builder->whereIn("u_kidtask.estado", array(9));
+        $builder->orWhere("u_kidtask.u_kidtaskstamp IS NULL", "", false);
+        $builder->groupEnd();
+        $query = $builder->get();
+        return $query->getRow();
     }
 }

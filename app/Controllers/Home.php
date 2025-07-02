@@ -157,7 +157,91 @@ class Home extends BaseController
         ]);
     }
     
-    
+    public function postCartItem() : ResponseInterface {
+        $request = service('request');
+
+        $type           = $request->getPost("type");
+        $barcodeData    = $request->getPost("data");
+
+        if(!$type) {
+            return $this->response->setJSON([
+                "type" => "warning",
+                "message" => "Tipo de pedido não identificado!"
+            ]);
+        }
+
+        if(!$barcodeData) {
+            return $this->response->setJSON([
+                "type" => "warning",
+                "message" => "Código de barras não detetado!"
+            ]);
+        }
+
+        if($type == "CART") {
+            $podCode            = trim($barcodeData);
+            $cart = $this->cartsModel->getDataByCode($podCode);
+            if(empty($cart)) {
+                return $this->response->setJSON([
+                    "type" => "warning",
+                    "message" => "O carrinho não foi encontrado ou encontra-se associado a uma tarefa!"
+                ]); 
+            }
+            return $this->response->setJSON([
+                "type" => "success",
+                "data" => $cart
+            ]);
+        } else if($type == "ARTICLE") {
+            $barcodeArray       = explode(";", $barcodeData);
+            $articleCode        = trim($barcodeArray[1]);
+            $articleLot         = trim($barcodeArray[2]);
+            $articleLength      = trim($barcodeArray[3]);
+            $articleWidth       = trim($barcodeArray[4]);
+
+            $article = $this->articlesModel->getDataByParam($articleCode, $articleLot);
+            if(empty($article)) {
+                return $this->response->setJSON([
+                    "type" => "warning",
+                    "message" => "O artigo não foi encontrado, encontra-se inativo ou corresponde a um artigo de serviço!"
+                ]); 
+            }
+            return $this->response->setJSON([
+                "type" => "success",
+                "data" => $article
+            ]);
+        } else if($type == "CUTORDER") {
+            $cutOrderNumber     = trim($barcodeData);
+            $cutOrder = $this->cutOrdersModel->getDataByCode($cutOrderNumber);
+            if(empty($cutOrder)) {
+                return $this->response->setJSON([
+                    "type" => "warning",
+                    "message" => "A ordem de corte não foi encontrada!"
+                ]); 
+            }
+            return $this->response->setJSON([
+                "type" => "success",
+                "data" => $cutOrder
+            ]);
+
+        } else if($type == "WORKORDER") {
+            $workOrderNumber    = trim($barcodeData);
+            $workOrder = $this->workOrdersModel->getDataByCode($workOrderNumber);
+            if(empty($workOrder)) {
+                return $this->response->setJSON([
+                    "type" => "warning",
+                    "message" => "A ordem de fabrico não foi encontrada!"
+                ]); 
+            }
+            return $this->response->setJSON([
+                "type" => "success",
+                "data" => $workOrder
+            ]);
+        }
+
+        return $this->response->setJSON([
+            "type" => "error",
+            "message" => "Tipo de pedido não encontrado!"
+        ]);
+    }    
 
     public function getUnloadLocations() : ResponseInterface {
         $unloadSpots = $this->spotsModel->getUnloadLocations();

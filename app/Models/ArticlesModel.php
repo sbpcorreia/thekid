@@ -63,4 +63,21 @@ class ArticlesModel extends Model {
         return $query->getResult();    
     }
 
+    public function getDataByParam($articleCode, $articleLot = "") {
+        $builder = $this->db->table($this->table);
+        $builder->select("st.ststamp AS id, st.ref, st.design, st.ststamp", false);
+        if(!empty($articleLot)) {
+            $builder->join("se", "se.ref=st.ref");
+        }
+        $builder->where("st.ref", $articleCode);
+        if(!empty($articleLot)) {
+            $builder->where("se.lote", $articleLot);
+        }
+        $builder->where("st.inactivo", 0);
+        $builder->where("st.stns", 0);
+        $builder->notLike("st.ref", "POLY", "right");
+        $query = $builder->get();
+        return $query->getResult();
+    }
+
 }

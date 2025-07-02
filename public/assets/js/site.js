@@ -420,19 +420,79 @@ document.addEventListener("DOMContentLoaded", () => {
         ignoreKeyCodes: [],
         onScan: function(barcode) {
             barcode = barcode.replace(/\\\d{5,6}/g, '');
-            // Remove caracteres de controle invisíveis (ASCII 0-31 e 127)
             barcode = barcode.replace(/[\x00-\x1F\x7F]/g, '');
-            // Remove espaços extras no começo/fim, se quiser
             barcode = barcode.trim();
-            // Remove caracteres não-ASCII
-            //const cleaned = barcode.replace(/[^\x20-\x7E]/g, '');
             console.log('Barcode limpo:', barcode);
+            detectBarcode(barcode, 1);
         },  
         reactToPaste: false
     });
 
-    function detectBarcode(scanCode, quantity) {
-        console.log(scanCode, quantity);
+    async function detectBarcode(inputString, quantity) {
+        let type;
+        let data;
+        let company = "";
+
+        const companyEl = document.getElementById("company");
+        if(companyEl) {
+            company = companyEl.value;
+        }
+
+        if(company === "") return;
+        
+        if (inputString.startsWith("R") && inputString.length === 5 && !isNaN(inputString.substring(1))) {
+            type = "CART";
+            data = inputString;
+            console.log("Carrinho detetado: " + inputString);
+        } else if (inputString.startsWith("ART:") && inputString.includes(";") && company == "POLYLANEMA") {
+            type = "ARTICLE";
+            data = inputString.substring(4);
+            console.log("Artigo detetado: " + inputString);
+        } else if (inputString.startsWith("OC:") && inputString.length > 3 && company == "POLYLANEMA") {
+            type = "CUTORDER";
+            data = inputString.substring(3);
+            console.log("Ordem de corte detetada: " + inputString);
+        } else if (inputString.length === 10 && !isNaN(inputString) && !inputString.includes(".") && company == "TECNOLANEMA") {
+            type = "WORKORDER";
+            data = inputString;
+            console.log("Ordem de fabrico detetada: " + inputString);
+        } else {
+            console.log(`Tipo de etiqueta desconhecido para: ${inputString}`);
+            return; // Não processa se o tipo for desconhecido
+        }
+        processBarcode(type, data, company);
+
+    }
+
+    async function processBarcode(type, barcodeData, company) {
+        try {
+            const response = await fetch(`${sbData.site_url}cartItem`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    type: type, 
+                    data : barcodeData 
+                })
+            });
+            
+            const data = await response.json(); 
+            if (data.type != "success") {
+                showApiResponseToast(response);
+            } else {
+                if(type === "CART") {
+                    const rackCodeEl = document.getElementById('cart-code');
+                    if(rackCodeEl) {
+                        rackCodeEl.value = barcodeData;
+                    }
+                } else {
+                    buildItem(type, company, data.data);
+                }
+            }            
+        } catch (error) {
+            console.error("Erro ao chamar a API:", error);
+        }        
     }
 
     // Função principal otimizada
@@ -449,12 +509,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Função global ou acessível para lidar com a adição/atualização de cartões
-    function updateCartDisplay(newCartItems) {
+    function updateCartDisplay(data) {
+        if(data.type != "rack_info_at_pos_code") return;        
+
         const container = document.getElementById('cart-unloading-container');
         if (!container) {
             console.error('Element with ID "cart-container" not found.');
             return;
         }
+
+        const newCartItems = data.racks;
+
+        if(newCartItems.length == 0) return;
 
         newCartItems.forEach(item => {
             const existingCard = container.querySelector(`[data-cart="${item.podCode}"]`);
@@ -537,52 +603,32 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // NOVA FUNÇÃO: Gerencia o estado da mensagem e controles
+    // NOVA FUNÇÃO: Gerencia o estado da mensagem e controlos
     function updateCartContainerState() {
         const container = document.getElementById('cart-unloading-container');
-        if (!container ) {
+        const changePodButton = document.getElementById("change-cart");
+        const addButton = document.getElementById("add-item");
+        const sendButton = document.getElementById("send-to-robot");
+        if (!container || !changeCartBtn || !addButton || !sendButton) {
             console.error('Um ou mais elementos de UI não foram encontrados.');
             return;
         }
-
-        // Verifica se há algum cartão dentro do container
         const hasCarts = container.children.length > 0;
         if (hasCarts) {
+            changePodButton.setAttribute("disabled", "disabled");
+            addButton.setAttribute('disabled', 'disabled');
+            sendButton.setAttribute('disabled', 'disabled');  
+            
+            SbModal.alert("Existem carrinhos a descarregar!!!!");
+        } else {
+            changePodButton.removeAttribute("disabled");
+            addButton.removeAttribute('disabled');
+            sendButton.removeAttribute('disabled');
+        }
+    }
+
+
     
-        } 
-
-        console.log(`Estado do carrinho atualizado: ${hasCarts ? 'Com itens' : 'Vazio'}`);
-    }
-
-
-    function detectRack(data) {
-
-        if (data.type !== 'rack_info_at_pos_code') {
-            return;
-        }
-        
-        const rackToUnloadEl = document.getElementById('cart-to-unload');
-        const rackInfoEl = document.getElementById("cart-code");
-        const itemAreaEl = document.getElementById('item-collection');
-
-        if (!rackInfoEl || !rackToUnloadEl) {
-            console.warn("Elementos 'cart-to-unload' ou 'cart-code-id' não encontrados.");
-            return;
-        }
-
-        const rackInfoHasValue = rackInfoEl.value !== "";
-        const rackToUnloadIsEmpty = rackToUnloadEl.value === "";
-        const itemAreaHasContent = itemAreaEl && itemAreaEl.innerHTML.trim() !== "";
-
-        if ((rackInfoHasValue && rackToUnloadIsEmpty) || (!rackInfoHasValue && itemAreaHasContent)) {
-            return;
-        }
-
-        // Atualiza o valor e dispara o evento apenas se todas as validações passarem.
-        rackToUnloadEl.value = data.podCode;
-        rackToUnloadEl.dispatchEvent(new Event("change"));
-    }
-
     // Função utilitária para limpeza (opcional)
     function clearRobotCache() {
         RobotUI.cache.robotElements.clear();
@@ -610,10 +656,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const configForm = document.getElementById("config-form");
         const rackToUnloadEl = document.getElementById('cart-to-unload');
         const rackCodeEl = document.getElementById('cart-code');
-        const changePodButton = document.getElementById('change-cart');
-        const resetPodButton = document.getElementById('reset-cart');
+        const changePodButton = document.getElementById("change-cart");
         const addButton = document.getElementById('add-item');
-        const sendButton = document.getElementById('sent-to-robot');
         const rackCodeSpan = document.getElementById('cart-code-id');
         const companyEl = document.getElementById('company');
         const newTaskFrm = document.getElementById("new-task");
@@ -738,41 +782,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         
 
-        // Verifica se todos os elementos foram encontrados.
-        // Se algum não existir, a função não será adicionada ou causará erros.
-        if (rackToUnloadEl && changePodButton && resetPodButton && addButton && sendButton && rackCodeSpan) {
-            rackToUnloadEl.addEventListener('change', (e) => {
-                // e.target refere-se ao elemento que disparou o evento (rackToUnloadEl neste caso)
-                const hasValue = e.target.value !== '';
-            
-                // Função auxiliar para aplicar ou remover atributos/classes
-                const toggleElements = (shouldHideChange, shouldDisableButtons, newValue) => {
-                    // Alterna a visibilidade dos botões
-                    changePodButton.classList.toggle('d-none', shouldHideChange);
-                    resetPodButton.classList.toggle('d-none', !shouldHideChange); // O oposto de shouldHideChange
-                
-                    // Alterna o estado de disabled
-                    if (shouldDisableButtons) {
-                        addButton.setAttribute('disabled', 'disabled');
-                        sendButton.setAttribute('disabled', 'disabled');
-                    } else {
-                        addButton.removeAttribute('disabled');
-                        sendButton.removeAttribute('disabled');
-                    }
-                
-                    // Atualiza o valor do span/input do código do rack
-                    rackCodeSpan.value = newValue;
-                };
-            
-                if (hasValue) {
-                    // Se tem valor: Esconder changePodButton, desabilitar add/send, atualizar rackCodeSpan
-                    toggleElements(true, true, e.target.value);
-                } else {
-                    // Se não tem valor: Mostrar changePodButton, habilitar add/send, limpar rackCodeSpan
-                    toggleElements(false, false, '');
-                }
-            });
-        }
+        
 
         if(rackCodeEl) {
             rackCodeEl.addEventListener("change", (e) => {
@@ -795,17 +805,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        if(resetPodButton) {
-            resetPodButton.addEventListener("click", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                SbModal.confirm("Tem a certeza que quer descarregar este carrinho?", () => {
-                    rackToUnloadEl.value = "";
-                    rackToUnloadEl.dispatchEvent(new Event("change"));
-                }, undefined);
-            });
-        }
         
         if(addButton && companyEl) {
             addButton.addEventListener("click", (e) => {
@@ -840,7 +839,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 
             });
         }
-        //let changePodButton = document.getElementById("change-cart");
         
     }
 
@@ -1319,7 +1317,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function updateRobotPositionInMap(data) {
-
+        if(data.type != 'robot_data_update') return;
         data.api_data.forEach(robot => {
             // CORREÇÃO: Usar robot.posY para a coordenada Y
             mapViewer.updateRobotPosition(robot.robotCode, robot.posX, robot.posY, robot.robotDir || 0);
@@ -1353,7 +1351,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 if(messages) {
                    messages.forEach(element => element.remove());
                 }
-            } 
+            }
+     
             updateRobotPositionInMap(data);
             generateRobotItem(data);
             updateCartDisplay(data);

@@ -21,7 +21,7 @@
                 </span>
             </div>
             <div class="col-auto">
-                <input type="text" class="form-control form-control-lg" data-vk readonly value="<?= $terminalDescription ?? ""; ?>">
+                <input type="text" class="form-control form-control-lg" readonly value="<?= $terminalDescription ?? ""; ?>">
             </div>
             <div class="col-auto">
                 <a href="#" class="link-dark" id="open-config-section" data-bs-toggle="tooltip" title="Configuração">

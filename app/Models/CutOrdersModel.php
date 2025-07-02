@@ -56,4 +56,12 @@ class CutOrdersModel extends Model {
         $query = $builder->get($pageSize, ($pageSize) * ($page-1));
         return $query->getResult();    
     }
+
+    public function getDataByCode($cutOrderNumer) {
+        $builder = $this->db->table($this->table);
+        $builder->select("u_ordemcortestamp AS id, numordem [orindoc], u_ordemcortestamp [oristamp], 'Ordem de corte' [orinmdoc]", false);
+        $builder->where("numordem", $cutOrderNumer);
+        $query = $builder->get();
+        return $query->getResult();
+    }
 }

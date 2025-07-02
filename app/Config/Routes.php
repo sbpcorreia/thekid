@@ -11,3 +11,4 @@ $routes->post("tableData", "Home::postTableData");
 $routes->get("unloadLocations", "Home::getUnloadLocations");
 $routes->post("sendTask", "Home::postSendTask");
 $routes->post("unloadCart", "Home::postUnloadCart");
+$routes->post("cartItem", "Home::getCartItem");

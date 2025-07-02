@@ -324,7 +324,9 @@ class HikrobotWebSocketServer implements MessageComponentInterface
                     if (isset($rackInfo->posCode) && $rackInfo->posCode === $posCode) {
                         $hasRack = true;
                         $podCode = $rackInfo->podCode;
-                        
+                        array_push($racks, array(
+                            "podCode" => $podCode
+                        ));
                     }
                 }
             } else {
@@ -334,17 +336,17 @@ class HikrobotWebSocketServer implements MessageComponentInterface
             echo "Exception fetching pod berth data for rack info: {$e->getMessage()}\n";
         }
 
-        $currentRackInfo = ['hasRack' => $hasRack, 'podCode' => $podCode];
+        $currentRackInfo = ['hasRack' => $hasRack, 'racks' => $racks];
 
         // Verifica se a informação da rack mudou para este posCode antes de enviar
         if (!isset($this->cachedRackInfo[$posCode]) || $this->cachedRackInfo[$posCode] !== $currentRackInfo) {
             $this->cachedRackInfo[$posCode] = $currentRackInfo; // Atualiza o cache
 
             $message = [
-                'type' => 'rack_info_at_pos_code',
-                'posCode' => $posCode,
-                'hasRack' => $hasRack,
-                'podCode' => $podCode,
+                'type'      => 'rack_info_at_pos_code',
+                'posCode'   => $posCode,
+                'hasRack'   => $hasRack,
+                'racks'     => $racks,
                 'timestamp' => date('Y-m-d H:i:s')
             ];
 

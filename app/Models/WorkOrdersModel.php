@@ -62,4 +62,11 @@ class WorkOrdersModel extends Model {
 
         return $this->db->query($query)->getResult();
     }
+
+    public function getDataByCode($workOrderNumber) {
+        $query = "SELECT u_tabof.u_tabofstamp AS id, u_tabof.u_tabofstamp AS oristamp, u_tabof.numof AS orindoc, 'Ordem de Fabrico' AS orinmdoc ";
+        $query .= "FROM TECNOLANEMA..u_tabof (NOLOCK) ";
+        $query .= sprintf("WHERE u_tabof.numof=%s", $workOrderNumber); 
+        return $this->db->query($query)->getResult();
+    }
 }
