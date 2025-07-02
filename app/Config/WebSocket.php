@@ -7,8 +7,8 @@ use CodeIgniter\Config\BaseConfig;
 class WebSocket extends BaseConfig {
 
 
-    public $addressToListen = "127.0.0.1";
+    public $addressToListen = "192.168.100.31";
 
-    public $portToListen = 8081;
+    public $portToListen = 8086;
     
 }
