@@ -669,6 +669,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const itemArea = document.getElementById("item-collection");
         const mapButton = document.getElementById("robot-map");
         const showHistoryButton = document.getElementById("show-task-history");
+        const cancelButton = document.getElementById("cancel-task");
         const correctPassword = "Lanema123";
         
 
@@ -862,6 +863,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     rackCodeSpan.innerText = e.target.value;
                 } else {
                     rackCodeSpan.innerText = "- Não definido -";
+                    //updateMainFormUI();
                 }
             });
         }
@@ -909,7 +911,35 @@ document.addEventListener("DOMContentLoaded", () => {
                 
             });
         }
+
+        if(cancelButton) {
+            cancelButton.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                resetForm();
+            });
+        }
         
+    }
+
+    function updateMainFormUI() {
+        const rackCodeEl = document.getElementById("cart-code");
+        const itemsElement = document.getElementById("item-collection");
+        const sendButton = document.getElementById("send-to-robot");
+        const sendUrgentButton = document.getElementById("send-urgent-to-robot")
+        const cancelButton = document.getElementById("cancel-task");
+
+        if(rackCodeEl && itemsElement) {
+            if(rackCodeEl.value != "" || itemsElement.childNodes.length > 0) {
+                sendButton.setAttribute("disabled", "disabled");
+                sendUrgentButton.setAttribute("disabled", "disabled");
+                cancelButton.setAttribute("disabled", "disabled");
+            } else {
+                sendButton.removeAttribute("disabled");
+                sendUrgentButton.removeAttribute("disabled");
+                cancelButton.removeAttribute("disabled");
+            }
+        }
     }
 
     // Simulação de uma API
@@ -1044,8 +1074,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     removeButton.dispatchEvent(new Event("click"));
                 }
             });
+            
         }
     }
+
+
 
     /**
      * Envia um objeto FormData para um endpoint da API.
@@ -1285,6 +1318,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (cardToRemove.parentNode) { // Verifica se ainda tem um pai antes de tentar remover
                         cardToRemove.remove();
+                        //updateMainFormUI();
                     }
                     
                 }, {
@@ -1445,5 +1479,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     attachEvents();
     connectWebSocket();
+    //updateMainFormUI();
     
 });

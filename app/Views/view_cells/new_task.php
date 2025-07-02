@@ -50,10 +50,19 @@
             </div>
         </div>
         <div class="card-footer">
-            <div class="d-flex justify-content-end">
-                <button class="btn btn-success btn-lg rounded-pill" id="send-to-robot" type="submit">
+            <div class="d-flex justify-content-end gap-2">
+                <button class="btn btn-success btn-lg rounded-pill" id="send-to-robot" name="action" value="sendNormal" type="submit">
                     <i class="bi bi-send"></i>
                     <span>Enviar</span>
+                </button>
+                <button class="btn btn-success btn-lg rounded-pill d-none" id="send-priority-to-robot" name="action" value="sendUrgent" type="submit">
+                    <i class="bi bi-send"></i>
+                    <span>Enviar urgente</span>
+                </button>
+                <div class="vr"></div>
+                <button class="btn btn-danger btn-lg rounded-pill" id="cancel-task" type="button">
+                    <i class="bi bi-x"></i>
+                    <span>Cancelar</span>
                 </button>
             </div>
         </div>  
