@@ -440,7 +440,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     if(type === "CART") {
                         const rackCodeEl = document.getElementById('cart-code');
                         if(rackCodeEl) {
-                            console.log(data);
+                            console.log(data, data.codigo, data[0].codigo);
+
                             rackCodeEl.value = data.codigo;
                             rackCodeEl.dispatchEvent(new Event("change"));
                         }
@@ -854,9 +855,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if(rackCodeEl) {
             rackCodeEl.addEventListener("change", (e) => {
-                console.log(e);
+
                 const hasValue = (this.value != '');
-                console.log(hasValue, this.value);
+
                 if(hasValue) {
                     rackCodeSpan.value = this.value;
                 } else {
