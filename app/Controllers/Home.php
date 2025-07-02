@@ -307,7 +307,7 @@ class Home extends BaseController
         helper('utilis_helper');
 
         $terminalCode = $request->getPost("terminalCode");
-        $origin = $request->getPost("origin");
+        $origin = $request->getPost("loadArea");
         $destination = $request->getPost("destination");
         $cartCode = $request->getPost("cartCode");
         $company = $request->getPost("company");

@@ -336,12 +336,7 @@ class HikrobotWebSocketServer implements MessageComponentInterface
             echo "Exception fetching pod berth data for rack info: {$e->getMessage()}\n";
         }
 
-        $currentRackInfo = ['hasRack' => $hasRack, 'racks' => $racks];
-
-        // Verifica se a informação da rack mudou para este posCode antes de enviar
-        if (!isset($this->cachedRackInfo[$posCode]) || $this->cachedRackInfo[$posCode] !== $currentRackInfo) {
-            $this->cachedRackInfo[$posCode] = $currentRackInfo; // Atualiza o cache
-
+        if(!empty($racks)) {
             $message = [
                 'type'      => 'rack_info_at_pos_code',
                 'posCode'   => $posCode,
@@ -350,14 +345,11 @@ class HikrobotWebSocketServer implements MessageComponentInterface
                 'timestamp' => date('Y-m-d H:i:s')
             ];
 
-            if ($conn) {
-                // Envia apenas para a conexão específica que solicitou ou está associada
-                $conn->send(json_encode($message));
-            } else {
-                // Faz broadcast para todos os clientes, se não houver conexão específica
-                // (Isso ocorreria se o timer periódico estivesse configurado para broadcast, o que não é o caso agora com SplObjectStorage)
+        if ($conn) {
+            $conn->send(json_encode($message));
+        } else {
                 $this->broadcast($message);
-            }
+        }
         }
     }
 

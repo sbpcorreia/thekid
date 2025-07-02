@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Libraries;
 
 use Config\Services;
@@ -11,11 +12,12 @@ class RobotTaskTracker
     const MAX_LINEAR_SPEED = 1200;  // mm/s - velocidade máxima
     const AVERAGE_SPEED_FACTOR = 0.7; // 70% da velocidade máxima como média
     const ROTATION_SPEED = 90;      // graus/s - velocidade rotação
-    const ROTATION_THRESHOLD = 5;   // graus mínimos para considerar rotação
-    const MIN_DISTANCE = 10;        // mm mínimos para considerar movimento
-    const SMOOTHING_FACTOR = 0.2;   // Fator de suavização para progresso (reduzido de 0.3 para mais suavidade)
-    const ESTIMATE_SMOOTHING_FACTOR = 0.1; // Novo fator para suavização de estimativas (ainda mais suave)
-    const PROGRESS_THRESHOLD = 0.05; // Threshold mínimo para considerar progresso (reduzido para ser mais sensível)
+    const ROTATION_THRESHOLD = 3;   // graus mínimos para considerar rotação (reduzido para mais sensibilidade)
+    const MIN_DISTANCE = 5;         // mm mínimos para considerar movimento (reduzido para mais sensibilidade)
+    const SMOOTHING_FACTOR = 0.15;  // Fator de suavização para progresso (reduzido para mais responsividade)
+    const ESTIMATE_SMOOTHING_FACTOR = 0.08; // Novo fator para suavização de estimativas (ainda mais suave e responsivo)
+    const PROGRESS_THRESHOLD = 0.5; // Threshold mínimo para considerar progresso (aumentado para evitar flutuações, mas o isProgressing é mais crítico)
+    const MIN_MOVEMENT_FOR_PROGRESS = 50; // mm - Movimento mínimo para considerar progresso físico (5cm)
 
     // Status do robô que permitem tracking
     const TRACKABLE_STATUSES = ["1", "2", "6", "81", "83", "86", "4"]; // 1=parado, 2=executando, 6=subindo carrinho, 81=obstrução
@@ -60,6 +62,7 @@ class RobotTaskTracker
             $totalDistanceInitial = $this->cache->get("{$keyPrefix}_total_distance_initial");
             $lastProgress = $this->cache->get("{$keyPrefix}_last_progress") ?: 0;
             $lastEstimate = $this->cache->get("{$keyPrefix}_last_estimate") ?: $initialTotalTime;
+            $lastDirection = $this->cache->get("{$keyPrefix}_last_direction") ?: $currentDir; // Adicionado para rastrear a última direção
 
             $elapsedTime = $now - $startTime;
 
@@ -85,10 +88,10 @@ class RobotTaskTracker
             $smoothedEstimate = $this->smoothEstimate($lastEstimate, $remainingTime, $elapsedTime);
 
             // Detectar se está progredindo (considerar status para determinar se deve estar parado)
-            $isProgressing = $this->isRobotProgressing($lastPosition, $currentX, $currentY, $smoothedProgress, $lastProgress, $status);
+            $isProgressing = $this->isRobotProgressing($lastPosition, $currentX, $currentY, $lastDirection, $currentDir, $smoothedProgress, $lastProgress, $status, $path);
 
             // Atualizar cache
-            $this->updateCache($keyPrefix, $now, $currentX, $currentY, $smoothedProgress, $smoothedEstimate);
+            $this->updateCache($keyPrefix, $now, $currentX, $currentY, $currentDir, $smoothedProgress, $smoothedEstimate);
 
             return array(
                 'robotCode' => $robotId,
@@ -115,28 +118,48 @@ class RobotTaskTracker
 
 
     /**
-     * Verificar se o robô está progredindo (modificado para considerar status)
+     * Verificar se o robô está progredindo (modificado para considerar status e movimento/rotação)
      */
-    protected function isRobotProgressing(array $lastPosition, float $currentX, float $currentY, float $currentProgress, float $lastProgress, string $status): bool
+    protected function isRobotProgressing(array $lastPosition, float $currentX, float $currentY, float $lastDir, float $currentDir, float $currentProgress, float $lastProgress, string $status, array $path): bool
     {
-        // Se está em obstrução ou pausado, não deveria estar progredindo fisicamente
-        // Status "1" (parado) e "81" (obstrução)
+        // Se está em obstrução (81) ou parado (1), não está progredindo fisicamente
         if (in_array($status, ["1", "81"])) {
-            return false; // Não está progredindo fisicamente
+            return false;
         }
 
-        // Para status de execução, verificar tanto progresso quanto movimento
-        if ($currentProgress > $lastProgress + self::PROGRESS_THRESHOLD) {
+        // Se o robô tem poucos pontos no path restantes, assume-se que está perto de concluir,
+        // mas ainda pode estar fazendo ajustes finos.
+        if (count($path) <= 3) { // Se há 3 ou menos pontos restantes
+            // Neste ponto, se o status não é de execução (2) ou subida de carrinho (6),
+            // ele pode estar em uma fase de conclusão.
+            if (!in_array($status, ["2", "6", "83", "86", "4"])) { // Se não é execução ativa, mas está em status "parado" ou aguardando
+                return false; // Não considerar como progredindo ativamente no caminho
+            }
+        }
+
+
+        // Verificar progresso baseado na porcentagem (pode ser lento para reagir no final)
+        if (($currentProgress - $lastProgress) > self::PROGRESS_THRESHOLD) {
             return true;
         }
 
-        // Verificar movimento físico
+        // Verificar movimento físico significativo
         if (is_array($lastPosition) && count($lastPosition) >= 2) {
             $distance = $this->calculateDistance($lastPosition, [$currentX, $currentY]);
-            return $distance > 50; // Movimento mínimo de 5cm
+            if ($distance > self::MIN_MOVEMENT_FOR_PROGRESS) { // Usar uma constante para movimento significativo
+                return true;
+            }
         }
 
-        return true; // Se nenhuma das condições acima for atendida, assumir que está progredindo
+        // Verificar rotação significativa
+        $rotationAngle = abs($this->calculateRotationAngle($lastDir, $currentDir));
+        if ($rotationAngle > self::ROTATION_THRESHOLD * 2) { // Rotação um pouco maior que o threshold normal
+            return true;
+        }
+
+        // Para status de execução, se não houve progresso percentual, movimento ou rotação,
+        // pode ser que esteja em ajustes finos ou aguardando, o que não é "progresso" no caminho.
+        return false;
     }
 
     /**
@@ -153,6 +176,7 @@ class RobotTaskTracker
         $this->cache->save("{$keyPrefix}_total_distance_initial", $totalDistance, 1800);
         $this->cache->save("{$keyPrefix}_last_update", $now, 1800);
         $this->cache->save("{$keyPrefix}_last_position", [$currentX, $currentY], 1800);
+        $this->cache->save("{$keyPrefix}_last_direction", $currentDir, 1800); // Salva a direção inicial
         $this->cache->save("{$keyPrefix}_last_progress", 0, 1800);
         $this->cache->save("{$keyPrefix}_last_estimate", $totalTime, 1800);
 
@@ -179,6 +203,7 @@ class RobotTaskTracker
     protected function calculatePathProgress(int $initialCount, int $currentCount): float
     {
         if ($initialCount <= 0) return 0;
+        if ($currentCount <= 0) return 100; // Se não há pontos restantes, 100%
 
         $completedPoints = $initialCount - $currentCount;
         return ($completedPoints / $initialCount) * 100;
@@ -194,7 +219,8 @@ class RobotTaskTracker
         // Encontrar a distância restante até o final do path
         $remainingDistance = $this->calculateRemainingDistance($path, $currentX, $currentY);
 
-        if ($remainingDistance <= 0) return 100;
+        // Se a distância restante for muito pequena, considera-se 100%
+        if ($remainingDistance <= self::MIN_DISTANCE) return 100;
 
         $completedDistance = $totalDistance - $remainingDistance;
         return ($completedDistance / $totalDistance) * 100;
@@ -225,8 +251,15 @@ class RobotTaskTracker
         $nearestIndex = $this->findNearestPointIndex($pathPoints, $currentPos);
 
         // Calcular distância da posição atual até o ponto mais próximo
+        // Se a distância for muito pequena até o ponto mais próximo, considerar que já passou por ele
         if ($nearestIndex >= 0) {
-            $totalRemaining += $this->calculateDistance($currentPos, $pathPoints[$nearestIndex]);
+            $distanceToNearest = $this->calculateDistance($currentPos, $pathPoints[$nearestIndex]);
+            if ($distanceToNearest > self::MIN_DISTANCE) {
+                 $totalRemaining += $distanceToNearest;
+            } else {
+                // Se estamos muito perto do ponto, avançamos para o próximo ponto no path para calcular a restante
+                $nearestIndex++;
+            }
 
             // Somar distâncias entre os pontos restantes
             for ($i = $nearestIndex; $i < count($pathPoints) - 1; $i++) {
@@ -295,18 +328,21 @@ class RobotTaskTracker
      */
     protected function combineProgressMethods(float $pathProgress, float $distanceProgress, int $elapsedTime): float
     {
-        // No início, dar mais peso ao progresso por pontos
-        // Com o tempo, dar mais peso ao progresso por distância
-        $timeWeight = min(1.0, $elapsedTime / 60); // Transição ao longo de 1 minuto
+        // No início, dar mais peso ao progresso por pontos (mais estável)
+        // Com o tempo (após ~30s), dar mais peso ao progresso por distância (mais real)
+        $timeWeight = min(1.0, $elapsedTime / 30); // Transição ao longo de 30 segundos
 
         $pathWeight = 1.0 - $timeWeight;
         $distanceWeight = $timeWeight;
 
         // Se a diferença entre os métodos for significativa, usar uma média ponderada
         $diff = abs($pathProgress - $distanceProgress);
-        if ($diff > 15) { // Reduzido de 20 para ser mais sensível
-            // Favorecer o progresso que está mais "à frente" mas ainda ponderar o outro
-            return ($pathProgress * 0.6) + ($distanceProgress * 0.4); // Exemplo de ponderação
+        if ($diff > 10) { // Reduzido de 15 para ser mais sensível e tentar corrigir
+            // Favorecer o progresso que está mais "à frente" se for a distância, ou manter um equilíbrio
+            if ($distanceProgress > $pathProgress) {
+                return ($pathProgress * 0.3) + ($distanceProgress * 0.7); // Dar mais peso à distância se estiver mais adiantada
+            }
+            return ($pathProgress * 0.7) + ($distanceProgress * 0.3); // Senão, favorecer pontos
         }
 
         return ($pathProgress * $pathWeight) + ($distanceProgress * $distanceWeight);
@@ -330,40 +366,37 @@ class RobotTaskTracker
         if ($progressPercent >= 99.9) return 0;
         if ($progressPercent <= 0.1) return $initialTime;
 
-        // Método 1: Baseado no progresso linear com base no tempo inicial estimado
         $remainingPercent = 100 - $progressPercent;
+
+        // Método 1: Baseado no progresso linear com base no tempo inicial estimado
         $linearEstimate = ($remainingPercent / 100) * $initialTime;
 
         // Método 2: Baseado na taxa de progresso observada
-        if ($elapsedTime > 5 && $progressPercent > 1) { // Reduzir o tempo mínimo e progresso para ativar
+        if ($elapsedTime > 10 && $progressPercent > 2) { // Reduzir o tempo mínimo e progresso para ativar mais cedo
             $progressRate = $progressPercent / $elapsedTime; // % por segundo
             if ($progressRate > 0) {
                 $rateBasedEstimate = $remainingPercent / $progressRate;
 
-                // Método 3: Baseado na velocidade atual observada (se disponível e razoável)
-                // Usar currentObservedSpeed para estimar o tempo restante se for mais preciso
-                // Isso requer que a distância restante seja calculada com base no path restante e velocidade
-                // Como não temos a distância restante exata aqui, vamos focar em combinar as estimativas de tempo
+                // Método 3: Baseado na velocidade atual observada (se razoável)
                 $speedBasedEstimate = $linearEstimate; // Fallback
+                $targetSpeed = self::MAX_LINEAR_SPEED * self::AVERAGE_SPEED_FACTOR;
 
-                // Ajuste se a velocidade observada for significativamente diferente da média
-                if ($currentObservedSpeed > 0 && self::MAX_LINEAR_SPEED * self::AVERAGE_SPEED_FACTOR > 0) {
-                    $speedRatio = $currentObservedSpeed / (self::MAX_LINEAR_SPEED * self::AVERAGE_SPEED_FACTOR);
-                    if ($speedRatio > 0.1 && $speedRatio < 5) { // Evitar divisões por zero ou valores extremos
-                         $speedBasedEstimate = $initialTime / $speedRatio * ($remainingPercent / 100);
+                if ($currentObservedSpeed > 0 && $targetSpeed > 0) {
+                    $speedRatio = $currentObservedSpeed / $targetSpeed;
+                    // Se a velocidade observada é razoável (entre 50% e 200% da média)
+                    if ($speedRatio > 0.5 && $speedRatio < 2.0) {
+                        $speedBasedEstimate = ($initialTime / $speedRatio) * ($remainingPercent / 100);
                     }
                 }
 
-
                 // Combinar os métodos
                 // Dar mais peso à taxa observada e à velocidade com o tempo
-                $timeWeight = min(0.9, $elapsedTime / 90); // Dar mais peso à taxa observada com o tempo (de 120s para 90s)
-                $combinedTimeEstimate = ($rateBasedEstimate * $timeWeight) + ($linearEstimate * (1 - $timeWeight));
-
-                // Ponderar a estimativa combinada com a estimativa baseada na velocidade, se ela for robusta
-                $finalEstimate = ($combinedTimeEstimate * 0.7) + ($speedBasedEstimate * 0.3); // Exemplo de ponderação
-
-                return $finalEstimate;
+                $weightForObservedData = min(0.9, $elapsedTime / 60); // Transição ao longo de 60s
+                $combinedTimeEstimate = ($rateBasedEstimate * $weightForObservedData * 0.7) +
+                                        ($speedBasedEstimate * $weightForObservedData * 0.3) +
+                                        ($linearEstimate * (1 - $weightForObservedData));
+                
+                return $combinedTimeEstimate;
             }
         }
 
@@ -376,7 +409,7 @@ class RobotTaskTracker
     protected function smoothEstimate(float $lastEstimate, float $newEstimate, int $elapsedTime): float
     {
         // Para tarefas recentes, permitir mais variação (tempo de estabilização)
-        if ($elapsedTime < 20) { // Reduzido de 30 para 20 segundos
+        if ($elapsedTime < 15) { // Reduzido de 20 para 15 segundos para ser mais responsivo
             return $newEstimate;
         }
 
@@ -390,19 +423,20 @@ class RobotTaskTracker
     protected function calculateCurrentSpeed(array $lastPosition, float $currentX, float $currentY, int $lastUpdate, int $now): float
     {
         if (!is_array($lastPosition) || count($lastPosition) < 2 || $now <= $lastUpdate) {
-            return round(self::MAX_LINEAR_SPEED * self::AVERAGE_SPEED_FACTOR);
+            return round(self::MAX_LINEAR_SPEED * self::AVERAGE_SPEED_FACTOR); // Fallback para velocidade média
         }
 
         $distance = $this->calculateDistance($lastPosition, [$currentX, $currentY]);
         $timeSpent = $now - $lastUpdate;
 
-        if ($timeSpent <= 0) return round(self::MAX_LINEAR_SPEED * self::AVERAGE_SPEED_FACTOR);
+        if ($timeSpent <= 0) return round(self::MAX_LINEAR_SPEED * self::AVERAGE_SPEED_FACTOR); // Fallback
 
         $speed = $distance / $timeSpent;
 
         // Limitar velocidades irreais: evitar saltos muito grandes ou valores muito baixos
-        if ($speed > self::MAX_LINEAR_SPEED * 1.5 || $speed < 10) { // Ajuste os limites conforme necessário
-            return round(self::MAX_LINEAR_SPEED * self::AVERAGE_SPEED_FACTOR); // Retorna a velocidade média se irreal
+        $avgSpeed = self::MAX_LINEAR_SPEED * self::AVERAGE_SPEED_FACTOR;
+        if ($speed > $avgSpeed * 2.0 || $speed < $avgSpeed * 0.1) { // Considerar speeds entre 10% e 200% da média
+            return round($avgSpeed); // Retorna a velocidade média se irreal
         }
 
         return round($speed);
@@ -457,11 +491,11 @@ class RobotTaskTracker
     {
         $diff = abs($pathProgress - $distanceProgress);
 
-        if ($elapsedTime < 20) { // Reduzido de 30 para 20s
+        if ($elapsedTime < 15) { // Reduzido de 20 para 15s
             return 'initial_calculation';
-        } elseif ($diff > 15) { // Reduzido de 20 para 15
+        } elseif ($diff > 10) { // Reduzido de 15 para 10
             return 'hybrid_with_correction';
-        } elseif ($elapsedTime < 90) { // Reduzido de 120 para 90s
+        } elseif ($elapsedTime < 60) { // Reduzido de 90 para 60s
             return 'path_and_distance_combined';
         } else {
             return 'progress_rate_based';
@@ -539,10 +573,11 @@ class RobotTaskTracker
     /**
      * Atualizar dados no cache
      */
-    protected function updateCache($keyPrefix, $now, $currentX, $currentY, $progress, $estimate)
+    protected function updateCache($keyPrefix, $now, $currentX, $currentY, $currentDir, $progress, $estimate)
     {
         $this->cache->save("{$keyPrefix}_last_update", $now, 1800);
         $this->cache->save("{$keyPrefix}_last_position", [$currentX, $currentY], 1800);
+        $this->cache->save("{$keyPrefix}_last_direction", $currentDir, 1800);
         $this->cache->save("{$keyPrefix}_last_progress", $progress, 1800);
         $this->cache->save("{$keyPrefix}_last_estimate", $estimate, 1800);
     }
@@ -556,6 +591,7 @@ class RobotTaskTracker
         $keys = [
             'start_time', 'initial_total_time', 'initial_path_count',
             'total_distance_initial', 'last_update', 'last_position',
+            'last_direction', // Adicionado para ser limpo também
             'last_progress', 'last_estimate'
         ];
 
