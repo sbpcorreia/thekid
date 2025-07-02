@@ -383,50 +383,7 @@ document.addEventListener("DOMContentLoaded", () => {
          return;
     }
 
-    // ATIVA A DETEÇÃO DE CÓDIGOS DE BARRA NA PÁGINA
-    onScan.attachTo(document, {
-        keyCodeMapper: function (oEvent) {
-            var iCode = oEvent.which || oEvent.keyCode;
-
-            // Letras, números e símbolos
-            switch (true) {
-                case iCode >= 48 && iCode <= 90: // letras e números padrão
-                case iCode >= 96 && iCode <= 105: // números no teclado numérico
-                case iCode >= 106 && iCode <= 111: // operações no teclado numérico
-                case [186, 187, 188, 189, 190, 191, 192, 219, 220, 221, 222].includes(iCode): // símbolos adicionais
-                    if (oEvent.key !== undefined && oEvent.key !== '') {
-                        let value = oEvent.key;
-                        // Remove símbolo & (Unicode 38) do início, se existir
-                        if (value.charCodeAt(0) === 38) {
-                            value = value.slice(1);
-                        }
-                        return value;
-                    }
-
-                    var sDecoded = String.fromCharCode(iCode);
-                    sDecoded = oEvent.shiftKey ? sDecoded.toUpperCase() : sDecoded.toLowerCase();
-
-                    // Remove símbolo & (Unicode 38) do início, se existir
-                    if (sDecoded.charCodeAt(0) === 38) {
-                        sDecoded = sDecoded.slice(1);
-                    }
-
-
-                    return sDecoded;
-            }
-
-            return '';
-        },
-        ignoreKeyCodes: [],
-        onScan: function(barcode) {
-            barcode = barcode.replace(/\\\d{5,6}/g, '');
-            barcode = barcode.replace(/[\x00-\x1F\x7F]/g, '');
-            barcode = barcode.trim();
-            console.log('Barcode limpo:', barcode);
-            detectBarcode(barcode, 1);
-        },  
-        reactToPaste: false
-    });
+    
 
     async function detectBarcode(inputString, quantity) {
         let type;
@@ -743,6 +700,51 @@ document.addEventListener("DOMContentLoaded", () => {
                     "data-vk" : "",
                 }
             );
+        });
+
+        // ATIVA A DETEÇÃO DE CÓDIGOS DE BARRA NA PÁGINA
+        onScan.attachTo(document, {
+            keyCodeMapper: function (oEvent) {
+                var iCode = oEvent.which || oEvent.keyCode;
+
+                // Letras, números e símbolos
+                switch (true) {
+                    case iCode >= 48 && iCode <= 90: // letras e números padrão
+                    case iCode >= 96 && iCode <= 105: // números no teclado numérico
+                    case iCode >= 106 && iCode <= 111: // operações no teclado numérico
+                    case [186, 187, 188, 189, 190, 191, 192, 219, 220, 221, 222].includes(iCode): // símbolos adicionais
+                        if (oEvent.key !== undefined && oEvent.key !== '') {
+                            let value = oEvent.key;
+                            // Remove símbolo & (Unicode 38) do início, se existir
+                            if (value.charCodeAt(0) === 38) {
+                                value = value.slice(1);
+                            }
+                            return value;
+                        }
+
+                        var sDecoded = String.fromCharCode(iCode);
+                        sDecoded = oEvent.shiftKey ? sDecoded.toUpperCase() : sDecoded.toLowerCase();
+
+                        // Remove símbolo & (Unicode 38) do início, se existir
+                        if (sDecoded.charCodeAt(0) === 38) {
+                            sDecoded = sDecoded.slice(1);
+                        }
+
+
+                        return sDecoded;
+                }
+
+                return '';
+            },
+            ignoreKeyCodes: [],
+            onScan: function(barcode) {
+                barcode = barcode.replace(/\\\d{5,6}/g, '');
+                barcode = barcode.replace(/[\x00-\x1F\x7F]/g, '');
+                barcode = barcode.trim();
+                console.log('Barcode limpo:', barcode);
+                detectBarcode(barcode, 1);
+            },  
+            reactToPaste: false
         });
         
 
