@@ -854,6 +854,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if(rackCodeEl) {
             rackCodeEl.addEventListener("change", (e) => {
+                console.log(e);
                 const hasValue = e.target.value !== '';
 
                 if(hasValue) {
