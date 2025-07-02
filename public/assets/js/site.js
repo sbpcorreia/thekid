@@ -440,9 +440,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     if(type === "CART") {
                         const rackCodeEl = document.getElementById('cart-code');
                         if(rackCodeEl) {
-                            console.log(data, data.codigo);
+                            //console.log(data, data.data.codigo);
 
-                            rackCodeEl.value = data.codigo;
+                            rackCodeEl.value = data.data.codigo;
                             rackCodeEl.dispatchEvent(new Event("change"));
                         }
                     } else {
