@@ -856,7 +856,7 @@ document.addEventListener("DOMContentLoaded", () => {
             rackCodeEl.addEventListener("change", (e) => {
                 console.log(e);
                 const hasValue = (this.value != '');
-
+                console.log(hasValue, this.value);
                 if(hasValue) {
                     rackCodeSpan.value = this.value;
                 } else {
