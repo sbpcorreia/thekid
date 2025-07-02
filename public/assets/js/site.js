@@ -466,31 +466,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function processBarcode(type, barcodeData, company) {
         try {
+            const formData = new FormData();
+            formData.append("type", type);
+            formData.append("data", barcodeData);
             const response = await fetch(`${sbData.site_url}cartItem`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    type: type, 
-                    data : barcodeData 
-                })
+                body: formData
             });
-            
-            const data = await response.json(); 
-            if (data.type != "success") {
-                showApiResponseToast(response);
+            if(!response.ok) {
+                Toast.create("Erro", "Ocorreu um erro ao obter os dados código de barras!", TOAST_STATUS.DANGER, 5000);
             } else {
-                if(type === "CART") {
-                    const rackCodeEl = document.getElementById('cart-code');
-                    if(rackCodeEl) {
-                        rackCodeEl.value = barcodeData;
-                        rackCodeEl.dispatchEvent(new Event("change"));
-                    }
+                const data = await response.json(); 
+                if (data.type != "success") {
+                    showApiResponseToast(response);
                 } else {
-                    buildItem(type, company, data.data);
-                }
-            }            
+                    if(type === "CART") {
+                        const rackCodeEl = document.getElementById('cart-code');
+                        if(rackCodeEl) {
+                            rackCodeEl.value = barcodeData;
+                            rackCodeEl.dispatchEvent(new Event("change"));
+                        }
+                    } else {
+                        buildItem(type, company, data.data);
+                    }
+                }           
+            }             
         } catch (error) {
             console.error("Erro ao chamar a API:", error);
         }        
@@ -1187,34 +1187,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     
-
-    function addContainerItem(barcode, barcodeContent) {
-        const podInfoEl = document.getElementById("cart-code-id");
-        const podCodeEl = document.querySelector('input[name="cart-code"]');
-
-        if (!podInfoEl || !podCodeEl) {
-            return;
-        }
-        const isUnloaded = ('unloaded' in podInfoEl.dataset && podInfoEl.dataset.unloaded === 'true'); // Se o valor for uma string "true"
-
-        if (podInfoEl.value !== "" && isUnloaded) {
-            Toast.create("Aviso", "Existe um carrinho que ainda não foi descarregado! Deve clicar na opção ao lado do carrinho para descarregar!", TOAST_STATUS.WARNING, 5000);
-            return;
-        }
-
-        let itemsData = [];
-        if(barcode) {
-            if(barcodeContent == "") {
-                Toast.create("Aviso", "O conteúdo do código de barras não foi conhecido!");
-                return;
-            }
-
-        } else if(!barcode) {
-
-        }
-
-    }
-
     function generateSimpleUniqueId() {
         return performance.now().toString(36).replace('.', '') + Math.random().toString(36).substring(2);
     }
