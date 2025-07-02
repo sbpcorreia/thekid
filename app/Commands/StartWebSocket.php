@@ -10,7 +10,7 @@ class StartWebSocket extends BaseCommand
 {
     protected $group = 'custom';
     protected $name = 'websocket:start';
-    protected $description = 'Start the WebSocket server using Ratchet and ReactPHP';
+    protected $description = 'Inicia um servidor de WebSockets utilizando o Ratchet and ReactPHP';
 
     public function run(array $params)
     {

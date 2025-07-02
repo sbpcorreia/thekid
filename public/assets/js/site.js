@@ -329,6 +329,26 @@ document.addEventListener("DOMContentLoaded", () => {
 	alertify.defaults.theme.cancel = "btn btn-sm btn-danger";
 	alertify.defaults.theme.input = "form-control ajs-input";
     Toast.setPlacement(TOAST_PLACEMENT.BOTTOM_LEFT);
+    const REAL_MAP_WIDTH_MM_FULL = 224850;
+    const REAL_MAP_HEIGHT_MM_FULL = 70000;
+    const KNOWN_ROBOT_MM_POINT = { x: 137187, y: 27806 };
+    const KNOWN_ROBOT_PX_POINT = { x: 586.202, y: 218.222 };
+
+    const mapViewer = new RobotMapViewer({
+        mapImagePath: `${sbData.site_url}assets/images/lanema.png`,
+        mapWidthMM_full: REAL_MAP_WIDTH_MM_FULL, 
+        mapHeightMM_full: REAL_MAP_HEIGHT_MM_FULL,
+        knownRobotPoint_MM: KNOWN_ROBOT_MM_POINT,
+        knownRobotPoint_Px: KNOWN_ROBOT_PX_POINT,
+        debugMode: true,
+        robotIconClass: 'robot-icon',  
+        modalTitle: 'Mapa de Robôs da Lanema'
+    });
+
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
 
     const BROWLIST_DEFINITIONS = {
         "ARTICLE": {
@@ -337,19 +357,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 { field: 'ref', title: 'Referência', sortable: true, searchable: true },
                 { field: 'design', title: 'Designação', sortable: true, searchable: true }
             ],
-            requestType: 'ARTICLE' // Exemplo: um tipo de requisição mais específico
+            requestType: 'ARTICLE'
         },
         "CUTORDER": {
             modalTitle: 'Selecionar Ordem de Corte',
             columns: [
-                { field: 'numordem', title: 'Ordem de Corte Nº', sortable: true, searchable: true }
+                { field: 'orinmdoc', title : 'Documento', sortable: true, searchable : true },
+                { field: 'orindoc', title: 'N.º', sortable: true, searchable: true }
             ],
-            requestType: 'CUTORDER' // Exemplo: um tipo de requisição mais específico
+            requestType: 'CUTORDER'
         },
-        "WORKORDER": { // Adicionei este com base no seu código anterior de TECNOLANEMA
+        "WORKORDER": {
             modalTitle: 'Selecionar Ordem de Fabrico',
             columns: [
-                { field: 'numordem', title: 'Ordem de Fabrico Nº', sortable: true, searchable: true }
+                { field: 'orinmdoc', title: 'Documento', sortable: true, searchable: true },
+                { field: 'orindoc', title: 'N.º', sortable : true, searchable : true }
             ],
             requestType: 'WORKORDER'
         }
@@ -426,6 +448,113 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Função global ou acessível para lidar com a adição/atualização de cartões
+    function updateCartDisplay(newCartItems) {
+        const container = document.getElementById('cart-unloading-container');
+        if (!container) {
+            console.error('Element with ID "cart-container" not found.');
+            return;
+        }
+
+        newCartItems.forEach(item => {
+            const existingCard = container.querySelector(`[data-cart="${item.podCode}"]`);
+            if (!existingCard) {
+                // Se o cartão não existe, cria um novo
+                const card = document.createElement('div');
+                card.classList.add('card', 'text-bg-warning', 'mb-3', 'fade'); // Adiciona 'fade' para animação
+                card.setAttribute('data-cart', item.podCode);
+                card.style.opacity = 0; // Inicia invisível para a animação fade-in
+
+                card.innerHTML = `
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-cart me-2"></i>
+                            <span class="fw-bold">${item.podCode}</span>
+                        </div>
+                        <button type="button" class="btn btn-danger rounded-pill unload-cart-btn">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </div>
+                `;
+
+                // Adiciona o cartão e dispara a animação fade-in
+                container.appendChild(card);
+                // Força o reflow para garantir que a transição seja aplicada
+                void card.offsetWidth; 
+                card.classList.add('show'); // Adiciona 'show' para iniciar o fade-in
+
+                // Adiciona o event listener imediatamente após criar o botão
+                card.querySelector('.unload-cart-btn').onclick = async (event) => {
+                    await handleUnloadCart(event);
+                };
+
+                console.log(`Cartão para ${item.podCode} adicionado.`);
+            } 
+        });
+        updateCartContainerState();
+    }
+
+    // Função para lidar com a remoção de um cartão (separada para reuso)
+    async function handleUnloadCart(event) {
+        const card = event.target.closest('.card');
+        if (card) {
+            const podCode = card.getAttribute('data-cart');
+            const unloadLocationEl = document.getElementById("unloadArea");
+            let unloadLocation = "";
+            if(unloadLocationEl) {
+                unloadLocation = unloadLocationEl.value;
+            }           
+            
+            console.log(`A tentar remover o item com podCode: ${podCode}`);
+
+            try {
+                const response = await fetch(`${sbData.site_url}unloadCart`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        podCode: podCode, 
+                        unloadLocation : unloadLocation 
+                    }),
+                });
+
+                const result = await response.json();
+                console.log('Resposta do servidor:', result);
+
+                if (response.type == "success") {
+                    card.classList.remove('show');
+                    card.addEventListener('transitionend', () => {
+                        card.remove();
+                        showApiResponseToast(response);
+                    }, { once: true }); 
+                } else {
+                    showApiResponseToast(response);
+                }
+            } catch (error) {
+                console.error('Erro ao fazer a requisição para remover o item:', error);
+            }
+        }
+    }
+
+    // NOVA FUNÇÃO: Gerencia o estado da mensagem e controles
+    function updateCartContainerState() {
+        const container = document.getElementById('cart-unloading-container');
+        if (!container ) {
+            console.error('Um ou mais elementos de UI não foram encontrados.');
+            return;
+        }
+
+        // Verifica se há algum cartão dentro do container
+        const hasCarts = container.children.length > 0;
+        if (hasCarts) {
+    
+        } 
+
+        console.log(`Estado do carrinho atualizado: ${hasCarts ? 'Com itens' : 'Vazio'}`);
+    }
+
+
     function detectRack(data) {
 
         if (data.type !== 'rack_info_at_pos_code') {
@@ -474,7 +603,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 searchable: true
             }
         ];
-        // Seleciona os elementos UMA ÚNICA VEZ fora do event listener
+
+        const openOffcanvasTrigger = document.getElementById('open-config-section');
+        const offcanvasRestrictedArea = new bootstrap.Offcanvas(document.getElementById('config-section'));
+
         const configForm = document.getElementById("config-form");
         const rackToUnloadEl = document.getElementById('cart-to-unload');
         const rackCodeEl = document.getElementById('cart-code');
@@ -486,10 +618,46 @@ document.addEventListener("DOMContentLoaded", () => {
         const companyEl = document.getElementById('company');
         const newTaskFrm = document.getElementById("new-task");
         const itemArea = document.getElementById("item-collection");
+        const mapButton = document.getElementById("robot-map");
+        const correctPassword = "Lanema123";
+        
 
         if (typeof Browlist === 'undefined') {
             console.error('A classe Browlist não está definida. Certifique-se de que a biblioteca Browlist foi carregada.');
             return; // Sai da função se Browlist não estiver disponível
+        }
+
+        if(typeof RobotMapViewer === 'undefined') {
+            console.error('A classe RobotMapViewer não está definida. Certifique-se que a biblioteca foi carregada.');
+            return;
+        }
+
+        openOffcanvasTrigger.addEventListener('click', function() {
+            // Usa o método prompt da sua SbModal para pedir a senha
+            SbModal.prompt(
+                'Por favor, introduza a senha de acesso:', // Mensagem
+                '', // Valor padrão (vazio)
+                (inputValue) => { // Callback para quando o botão OK é clicado
+                    if (inputValue === correctPassword) {
+                        offcanvasRestrictedArea.show(); // Abre a offcanvas
+                    } else {
+                        Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
+                    }
+                },
+                undefined,
+                'Acesso Restrito', // Título do prompt,
+                'password',
+                {
+                    "data-vk" : "",
+                }
+            );
+        });
+        
+
+        if(mapButton) {
+            mapButton.addEventListener("click", (e) => {
+                mapViewer.showMapModal();
+            });
         }
 
         const browlistModal = new Browlist({
@@ -1070,13 +1238,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 cardToRemove.classList.add("fade");
 
                 cardToRemove.addEventListener("transitionend", (transitionEvent) => {
-                    if (transitionEvent.propertyName === 'opacity' || transitionEvent.propertyName === 'height') {
-                        if (cardToRemove.parentNode) {
-                            cardToRemove.remove();
-                        }
+                    // Verifica se a propriedade que terminou a transição é 'opacity' OU 'height'.
+                    // Isso é importante porque se você tiver várias transições,
+                    // o evento 'transitionend' é disparado para CADA propriedade que termina a transição.
+                    // Queremos ter certeza de que o elemento desapareceu e/ou encolheu.
+
+                    if (cardToRemove.parentNode) { // Verifica se ainda tem um pai antes de tentar remover
+                        cardToRemove.remove();
                     }
-                }, { once: true });
-            }
+                    
+                }, {
+                    once: true // Remove o listener automaticamente após a primeira execução
+                });
+                    }
         };
 
         itemDeleteButton.addEventListener("click", handleDeleteClick);
@@ -1144,6 +1318,13 @@ document.addEventListener("DOMContentLoaded", () => {
         browlistModal.open(); // Assumindo que Browlist tem um método show()
     }
 
+    function updateRobotPositionInMap(data) {
+
+        data.api_data.forEach(robot => {
+            // CORREÇÃO: Usar robot.posY para a coordenada Y
+            mapViewer.updateRobotPosition(robot.robotCode, robot.posX, robot.posY, robot.robotDir || 0);
+        });
+    }
     
    
     function connectWebSocket() {
@@ -1173,8 +1354,9 @@ document.addEventListener("DOMContentLoaded", () => {
                    messages.forEach(element => element.remove());
                 }
             } 
+            updateRobotPositionInMap(data);
             generateRobotItem(data);
-            detectRack(data);
+            updateCartDisplay(data);
         };
 
         socket.onerror = (error) => {

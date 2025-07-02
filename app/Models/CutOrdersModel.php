@@ -34,7 +34,7 @@ class CutOrdersModel extends Model {
 
     public function getData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "asc") {
         $builder = $this->db->table($this->table);
-        $builder->select("u_ordemcortestamp AS id, numordem", false);
+        $builder->select("u_ordemcortestamp AS id, numordem [orindoc], u_ordemcortestamp [oristamp], 'Ordem de corte' [orinmdoc]", false);
 
         if(!empty($search)) {
             if($searchColumn == "global") {

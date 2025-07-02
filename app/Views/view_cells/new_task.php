@@ -6,8 +6,11 @@
         <div class="card-body">   
                  
             <input type="hidden" name="terminalCode" id="terminal-code" value="<?= $terminalCode ?? ""; ?>" />
-            <input type="hidden" name="origin" id="origin" value="<?= $origin ?? ""; ?>" />
+            <input type="hidden" name="loadArea" id="loadArea" value="<?= $loadArea ?? ""; ?>" />
+            <input type="hidden" name="unloadArea" id="unloadArea" value="<?= $unloadArea ?? ""; ?>" />
             <input type="hidden" name="company" id="company" value="<?= $company ?? ""; ?>" />
+            
+            <div id="cart-unloading-container" class="mb-2"></div>
 
             <div class="card location-cart shadow-sm">
                 <div class="card-body d-flex align-items-center fs-2 gap-3">
@@ -29,7 +32,7 @@
                     </div>
                 </div>
             </div> 
-            <div class="row mt-4 mb-4">
+            <div class="row mt-4 mb-4 ">
 
                 <div class="d-none-xs d-none-xs col-md-9 m-auto">
                     <hr>
@@ -41,8 +44,8 @@
                     </button>
                 </div>                
             </div>
-            <div class="row">
-                <div class="col" id="item-collection">
+            <div class="row flex-grow-1">
+                <div class="col scrollable-area flex-fill" id="item-collection">
                 </div>
             </div>
         </div>

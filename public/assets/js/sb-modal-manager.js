@@ -156,11 +156,26 @@ class SBModalManager {
      * @param {Function} [onCancel=null] - Callback para quando o botão Cancelar for clicado.
      * @param {string} [title='Entrada Necessária'] - O título da modal.
      */
-    prompt(message, defaultValue = '', onOk = null, onCancel = null, title = 'Entrada Necessária') {
+    prompt(message, defaultValue = '', onOk = null, onCancel = null, title = 'Entrada Necessária', inputType = "text", inputAttributes = []) {
         const inputId = `promptInput-${Date.now()}`;
+
+        let attributesString = '';
+        for (const key in inputAttributes) {
+            if (Object.prototype.hasOwnProperty.call(inputAttributes, key)) {
+                // Se o valor for vazio ou null, adicione apenas o nome do atributo (ex: data-vk)
+                // Caso contrário, adicione nome="valor"
+                const value = inputAttributes[key];
+                if (value === '' || value === null || value === undefined) {
+                    attributesString += ` ${key}`;
+                } else {
+                    attributesString += ` ${key}="${value}"`;
+                }
+            }
+        }
+
         const contentHtml = `
             <p>${message}</p>
-            <input type="text" id="${inputId}" class="form-control" value="${defaultValue}">
+            <input type="${inputType}" id="${inputId}" class="form-control" value="${defaultValue}"${attributesString}>
         `;
 
         this._openModal({

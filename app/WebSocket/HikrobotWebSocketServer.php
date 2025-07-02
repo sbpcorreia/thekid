@@ -92,21 +92,29 @@ class HikrobotWebSocketServer implements MessageComponentInterface
         }
 
         $terminalCode = $data["terminalCode"] ?? null;
+        $loadLocation = $unloadLocation = "";
 
         if (!empty($terminalCode)) {
             try {
                 $terminalInfo = $this->terminalModel->getTerminalInfo($terminalCode);
-                if (!empty($terminalInfo) && isset($terminalInfo->ponto)) {
+                if (!empty($terminalInfo)) {
+                    $unloadLocation = $terminalInfo->ponto;
+                    $loadLocation = $terminalInfo->ponto;
+                    if(!empty($terminalInfo->ponto2)) {
+                        $unloadLocation = $terminalInfo->ponto2;
+                    }                   
+
                     // Armazena o locationCode associado a esta conexão
-                    $this->clientLocations->offsetSet($from, $terminalInfo->ponto);
-                    echo "Client {$from->resourceId} associated with location: {$terminalInfo->ponto}\n";
+                    $this->clientLocations->offsetSet($from, $unloadLocation);
+                    echo "Cliente {$from->resourceId} associado à localização de descarga: {$unloadLocation}, carga: {$loadLocation}\n";
+                    
                 } else {
-                    echo "Terminal info or ponto not found for terminalCode: {$terminalCode}\n";
+                    echo "Terminal não encontrado {$terminalCode}\n";
                 }
             } catch (\Throwable $e) {
-                echo "Error getting terminal info for {$terminalCode}: {$e->getMessage()}\n";
+                echo "Erro ao obter as informações do terminal {$terminalCode}: {$e->getMessage()}\n";
                 // Opcional: enviar erro para o cliente
-                $from->send(json_encode(['error' => 'Failed to get terminal info']));
+                $from->send(json_encode(['error' => 'Falha ao obter as informações do terminal']));
             }
         }
 
@@ -127,7 +135,7 @@ class HikrobotWebSocketServer implements MessageComponentInterface
                             $this->queryAndSendRackInfoByPosCode($locationCode, $from);
                         }
                     } else {
-                        $from->send(json_encode(['error' => 'No posCode provided or associated with client.']));
+                        $from->send(json_encode(['error' => 'Não existe nenhuma localização associada ao cliente']));
                     }
                     break;
                 default:
@@ -157,12 +165,12 @@ class HikrobotWebSocketServer implements MessageComponentInterface
     {
         $this->clients->detach($conn);
         $this->clientLocations->detach($conn); // Remove a associação de localização ao desconectar
-        echo "Connection {$conn->resourceId} has disconnected\n";
+        echo "A ligação {$conn->resourceId} foi quebrada\n";
     }
 
     public function onError(ConnectionInterface $conn, \Throwable $e)
     {
-        echo "An error has occurred on connection {$conn->resourceId}: {$e->getMessage()}\n";
+        echo "Ocorreu um erro na ligação {$conn->resourceId}: {$e->getMessage()}\n";
         $conn->close();
     }
 
@@ -301,6 +309,8 @@ class HikrobotWebSocketServer implements MessageComponentInterface
         $podCode = "";
         helper('utilis_helper');
 
+        $racks = [];
+
         $body = [
             "reqCode" => newStamp(REQ_CODE_POD_BERTH),
             "mapShortName" => MAP_SHORT_NAME
@@ -314,7 +324,7 @@ class HikrobotWebSocketServer implements MessageComponentInterface
                     if (isset($rackInfo->posCode) && $rackInfo->posCode === $posCode) {
                         $hasRack = true;
                         $podCode = $rackInfo->podCode;
-                        break;
+                        
                     }
                 }
             } else {

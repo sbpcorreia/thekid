@@ -16,9 +16,33 @@ use CodeIgniter\HTTP\Response;
 
 class Home extends BaseController
 {
+
+    protected $cartsModel;
+    protected $articlesModel;
+    protected $cutOrdersModel;
+    protected $taskModel;
+    protected $taskLinesModel;
+    protected $workOrdersModel;
+    protected $webServicesModel;
+    protected $spotsModel;
+    protected $ordersModel;
+
+    public function __construct()
+    {
+        $this->cartsModel = new CartsModel();
+        $this->articlesModel = new ArticlesModel();
+        $this->cutOrdersModel = new CutOrdersModel();
+        $this->taskModel = new TaskModel();
+        $this->taskLinesModel = new TaskLinesModel();
+        $this->workOrdersModel = new WorkOrdersModel();
+        $this->webServicesModel = new WebServiceModel();
+        $this->spotsModel = new SpotModel();
+        $this->ordersModel = null;
+    }
+
     public function index()
     {
-        $company = $origin = "";
+        $company = $loadArea = $unloadArea = "";
         $terminalCode = $this->request->getCookie("terminalCode");
 
         $terminalModel = new TerminalModel();
@@ -43,15 +67,17 @@ class Home extends BaseController
             if($terminal != null) {
                 $this->navbarData["terminalDescription"] = $terminal->descricao;
                 
-                $company = $terminal->empresa;
-                $origin = $terminal->ponto;
+                $company    = $terminal->empresa;
+                $loadArea   = $terminal->ponto;
+                $unloadArea = !empty($terminal->ponto2) ? $terminal->ponto2 : $terminal->ponto;
             }
         }
 
         $viewData = array(
             "terminalCode"  => $terminalCode,
             "company"       => strtoupper($company),
-            "origin"        => $origin
+            "loadArea"      => $loadArea,
+            "unloadArea"    => $unloadArea
         );
         
         echo view("base/header", $this->pageData);
@@ -60,6 +86,16 @@ class Home extends BaseController
         echo view("main", $viewData);
         echo view("base/postbody");
         echo view("base/footer", $this->pageData);
+    }
+
+    public function loadTaskArea($terminalCode, $company, $loadArea, $unloadArea) {
+        $viewData = array(
+            "terminalCode"  => $terminalCode,
+            "company"       => $company,
+            "loadArea"      => $loadArea,
+            "unloadArea"    => $unloadArea
+        );
+        return view("view_cells/new_task", $viewData);
     }
 
 
@@ -98,21 +134,18 @@ class Home extends BaseController
         $totalRecords = 0;
 
         if($requestType === "CART") {
-            $cartsModel = new CartsModel();
-            $totalRecords = $cartsModel->countData($columnsToShow, $search, $searchColumn);
-            $data = $cartsModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
+            $totalRecords = $this->cartsModel->countData($columnsToShow, $search, $searchColumn);
+            $data = $this->cartsModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
             
         } else if($requestType === "ARTICLE") {
-            $articlesModel = new ArticlesModel();
-            $totalRecords = $articlesModel->countData($columnsToShow, $search, $searchColumn);
-            $data = $articlesModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
+            $totalRecords = $this->articlesModel->countData($columnsToShow, $search, $searchColumn);
+            $data = $this->articlesModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
         } else if($requestType === "WORKORDER") {
-            // TO WORK
+            $totalRecords = $this->workOrdersModel->countData($columnsToShow, $search, $searchColumn);
+            $data = $this->workOrdersModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
         } else if($requestType === "CUTORDER") {
-            $cutOrdersModel = new CutOrdersModel();
-            $totalRecords = $cutOrdersModel->countData($columnsToShow, $search, $searchColumn);
-            $data = $cutOrdersModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
-
+            $totalRecords = $this->cutOrdersModel->countData($columnsToShow, $search, $searchColumn);
+            $data = $this->cutOrdersModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
         } else if($requestType === "ORDER") {
             // TO WORK
         }
@@ -124,21 +157,64 @@ class Home extends BaseController
         ]);
     }
     
-    public function loadTaskArea($terminalCode, $company, $origin) {
-        $viewData = array(
-            "terminalCode"  => $terminalCode,
-            "company"       => $company,
-            "origin"        => $origin
-        );
-        return view("view_cells/new_task", $viewData);
-    }
+    
 
     public function getUnloadLocations() : ResponseInterface {
-        $spotsModel = new SpotModel();
-
-        $unloadSpots = $spotsModel->getUnloadLocations();
-
+        $unloadSpots = $this->spotsModel->getUnloadLocations();
         return $this->response->setJSON($unloadSpots); 
+    }
+
+    public function postUnloadCart() : ResponseInterface {
+        $request = service('request');
+
+        helper('utilis_helper');
+
+        $podCode = $request->getPost("podCode");
+        $unloadLocation = $request->getPost("unloadLocation");
+
+        if(!$podCode) {
+            return $this->response->setJSON([
+                "type" => "warning",
+                "message" => "Carrinho não indicado"
+            ]);
+        }
+
+        if(!$unloadLocation) {
+            return $this->response->setJSON([
+                "type" => "warning",
+                "message" => "Deve indicar a localização!"
+            ]);
+        }
+
+        $requestData = array(
+            "reqCode"       => newStamp("POD"),
+            "podCode"       => $podCode,
+            "positionCode"  => $unloadLocation,
+            "podDir"        => "0",
+            "indBind"       => "0"
+        );
+
+        $result = $this->webServicesModel->callWebservice(HIKROBOT_BIND_POD_BERTH, $requestData);
+
+        if(!$result) {
+            return $this->response->setJSON([
+                "type" => "error",
+                "message" => "Ocorreu um erro ao descarregar carrinho!"
+            ]);
+        }
+
+        if(isset($result->code) && $result->code === "0") {
+            return $this->response->setJSON([
+                "type" => "success",
+                "message" => sprintf("Carrinho %s descarregado com sucesso!", $podCode)
+            ]);
+        } 
+
+        return $this->response->setJSON([
+            "type" => "error",
+            "message" => "Ocorreu um erro ao descarregar o carrinho. Detalhes do erro: " . json_encode($result)
+        ]);
+
     }
 
     public function postSendTask() : ResponseInterface {
@@ -166,13 +242,9 @@ class Home extends BaseController
                 "message" => "Não foi indicado o conteúdo do carrinho!"
             ]);
         }
-        //return $this->response->setJSON($taskLines);
-
-        $taskModel = new TaskModel();
-        $taskLinesModel = new TaskLinesModel();
 
         $taskStamp = newStamp("TSK");
-        $result = $taskModel->addNewTask($taskStamp, $cartCode, $origin, $destination, 0, "TSK");
+        $result = $this->taskModel->addNewTask($taskStamp, $cartCode, $origin, $destination, 10, "TSK");
         if(!$result) {
             return $this->response->setJSON([
                 "type" => "error",
@@ -185,7 +257,7 @@ class Home extends BaseController
             $taskLines[$key]["u_kidtaskstamp"] = $taskStamp;          
         }
 
-        $result = $taskLinesModel->insertBatch($taskLines);
+        $result = $this->taskLinesModel->insertBatch($taskLines);
         if(!$result) {
             return $this->response->setJSON([
                 "type" => "error",

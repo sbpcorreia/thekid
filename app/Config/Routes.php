@@ -10,3 +10,4 @@ $routes->post("setTerminal", "Home::postSetTerminal");
 $routes->post("tableData", "Home::postTableData");
 $routes->get("unloadLocations", "Home::getUnloadLocations");
 $routes->post("sendTask", "Home::postSendTask");
+$routes->post("unloadCart", "Home::postUnloadCart");

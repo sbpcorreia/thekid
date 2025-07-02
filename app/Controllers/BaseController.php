@@ -102,6 +102,7 @@ abstract class BaseController extends Controller
 				'Bootstrap Toaster' 		=> site_url('/assets/js/bootstrap-toaster.min.js'),
                 'SolidBridgeBrowlist'       => site_url('/assets/js/sb-browlist.js'),
                 'SolidBridgeModalManager'   => site_url('/assets/js/sb-modal-manager.js'),
+                'RobotMapViewer'            => site_url('/assets/js/robot-map-viewer.js'),
 				'Site JS' 					=> site_url('/assets/js/site.js'),	
 			),
 		);

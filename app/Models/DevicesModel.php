@@ -15,10 +15,12 @@ class DevicesModel extends Model {
     public function getDeviceName($deviceIp, $deviceCode = "") {
         $builder = $this->db->table($this->table);
         $builder->select("nome");
+        $builder->groupStart();
         $builder->where("ip", $deviceIp);
         if(!empty($deviceCode)) {
             $builder->orWhere("code", $deviceCode);
         }
+        $builder->groupEnd();
         $query = $builder->get();
         $result = $query->getRow();
         if(!empty($result)) {
@@ -27,9 +29,15 @@ class DevicesModel extends Model {
         return "";
     }
 
-    public function getDevice($deviceIp) {
+    public function getDevice($deviceIp, $deviceCode = "") {
         $builder = $this->db->table($this->table);
+        $builder->select("nome, ip, code");
+        $builder->groupStart();
         $builder->where("ip", $deviceIp);
+        if(!empty($deviceCode)) {
+            $builder->orWhere("code", $deviceCode);
+        }
+        $builder->groupEnd();
         $query = $builder->get();
         return $query->getRow();
     }
@@ -37,6 +45,13 @@ class DevicesModel extends Model {
     public function updateDeviceCode($deviceStamp, $deviceNewCode) {
         $builder = $this->db->table($this->table);
         $builder->set("code", $deviceNewCode);
+        $builder->where("u_kiddevsstamp", $deviceStamp);
+        return $builder->update();
+    }
+
+    public function updateDeviceIp($deviceStamp, $deviceNewIp) {
+        $builder = $this->db->table($this->table);
+        $builder->set("ip", $deviceNewIp);
         $builder->where("u_kiddevsstamp", $deviceStamp);
         return $builder->update();
     }

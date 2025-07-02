@@ -10,29 +10,48 @@ html, body {
 }
 
 .main-content {
-    flex: 1;
-    overflow: hidden;
-    padding: 1rem;
+    /* Assumindo que o cabeçalho tem 60px e o rodapé tem 40px */
+    height: calc(100vh - 60px - 40px);
+    display: flex;
+    flex-direction: column;
+    padding-top: 30px;
 }
 
 .row.full-height {
-    height: 100%;
+    height: 100%; /* Isso faz com que a linha ocupe 100% da altura do main-content */
+    display: flex; /* Adicione display flex para que as colunas se ajustem */
+    flex-grow: 1; /* Permite que a linha cresça e preencha o espaço disponível */
 }
 
-.col-md-6 {
+.col-md-6 { /* Adicione todas as classes de coluna relevantes aqui */
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Organiza os cards verticalmente */
+    height: 100%; /* Faz a coluna ocupar 100% da altura da sua linha pai */
+}
+
+#item-collection {
+    flex: 1; /* Garante que preenche o espaço disponível no seu contêiner */
+    overflow-y: auto; /* Habilita o scroll */
+    min-height: 0; /* Essencial para o scroll dentro de um flex item */
 }
 
 .card {
-    flex: 1;
+    flex: 1; /* Faz o card preencher o espaço disponível na coluna */
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Permite que o card-header, card-body, card-footer se organizem verticalmente */
+    min-height: 0; /* Importantíssimo para evitar que o flex-item com overflow ignore o limite */
 }
 
 .card-body {
-    flex: 1;
-    overflow-y: auto;
+    flex: 1; /* Permite que o card-body ocupe todo o espaço disponível dentro do card */
+    overflow-y: auto; /* Habilita o scroll vertical */
+    min-height: 0; /* Essencial para garantir que o scroll funcione dentro de um flex item */
+}
+
+.scrollable-area {
+    flex: 1; /* Faz o elemento preencher o espaço */
+    overflow-y: auto; /* Habilita o scroll */
+    min-height: 0; /* Crucial para flex items com overflow */
 }
 
 .img-grayscale {
@@ -104,4 +123,45 @@ html, body {
 @keyframes fadeIn {
   from { opacity: 0; transform: translate(-50%, -60%); }
   to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* style.css */
+
+
+
+/* Container para os ícones dos robôs */
+.robot-icons-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Permite interagir com elementos sob o container (se houver) */
+    z-index: 5; /* Garante que está acima da imagem do mapa */
+}
+
+/* Estilos para os ícones individuais dos robôs */
+.robot-icon {
+    position: absolute; 
+    width: 25px;
+    height: 25px;
+    background-color: #007bff; 
+    border-radius: 50%; 
+    border: 2px solid white; 
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.4); 
+
+    transition: left 0.1s linear, top 0.1s linear, transform 0.1s linear;
+    z-index: 10; 
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+}
+
+/* Estilos para o label/ID do robô dentro do ícone */
+.robot-icon .robot-label {
+    color: white;
+    font-size: 0.65em; 
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); 
+    user-select: none;
 }

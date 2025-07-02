@@ -5,7 +5,13 @@
         </a>
         <div class="row g-3 fs-2 align-items-center">
             <div class="col-auto">
-                <a href="#" class="link-dark">
+                <a href="#" class="link-dark" id="robot-map" data-bs-toggle="tooltip" title="Localização do robot">
+                    <i class="bi bi-geo-fill"></i>
+                </a>
+            </div>
+            
+            <div class="col-auto">
+                <a href="#" class="link-dark" data-bs-toggle="tooltip" title="Histórico">
                     <i class="bi bi-clock-history"></i>
                 </a>
             </div>
@@ -18,7 +24,7 @@
                 <input type="text" class="form-control form-control-lg" data-vk readonly value="<?= $terminalDescription ?? ""; ?>">
             </div>
             <div class="col-auto">
-                <a href="#" class="link-dark" data-bs-toggle="offcanvas" data-bs-target="#config-section" aria-controls="config-section">
+                <a href="#" class="link-dark" id="open-config-section" data-bs-toggle="tooltip" title="Configuração">
                     <i class="bi bi-gear-fill"></i>
                 </a>
             </div>            
@@ -57,9 +63,6 @@
                             </div>
                         <?php endif; ?>
                     </div>
-                    
-                        
-                    
                 </div>            
             </div>
             <div class="mt-3">

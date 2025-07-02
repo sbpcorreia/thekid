@@ -28,6 +28,9 @@ class CartsModel extends Model {
                 $builder->like($searchColumn, $searchColumn);
             }
         }
+        $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo", "left");
+        $builder->whereIn("u_kidtask.estado", array(9));
+        $builder->orWhere("u_kidtask.u_kidtaskstamp IS NULL", "", false);
         $query = $builder->get();
         $res = $query->getRow();
         return $res->count;
@@ -39,13 +42,11 @@ class CartsModel extends Model {
 
         if(!empty($search)) {
             if($searchColumn == "global") {
+                $builder->groupStart();
                 foreach($columns as $key => $value) {
-                    if($key == 0) {
-                        $builder->like($columns[$key], $search, "both");
-                    } else {
-                        $builder->orLike($columns[$key], $search, "both");
-                    }
+                    $builder->orLike($columns[$key], $search, "both");                    
                 }
+                $builder->groupEnd();
             } else {
                 $builder->like($searchColumn, $searchColumn);
             }
@@ -53,7 +54,9 @@ class CartsModel extends Model {
         if(!empty($sortColumn)) {
             $builder->orderBy($sortColumn, $sortDirection);
         }    
-
+        $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo", "left");
+        $builder->whereIn("u_kidtask.estado", array(9));
+        $builder->orWhere("u_kidtask.u_kidtaskstamp IS NULL", "", false);
         $query = $builder->get($pageSize, ($pageSize) * ($page-1));
         return $query->getResult();        
     }

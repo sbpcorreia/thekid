@@ -7,8 +7,9 @@
 class Browlist {
     constructor(options = {}) {
         this.options = {
-            // Configurações básicas
+            // Configurações básicas            
             multipleSelection: false,
+            hideSelectionColumn: false,
             modalTitle: 'Seleção de Registos',
             modalSize: 'xl', // sm, lg, xl
             recordIdField: 'id', // Campo que identifica unicamente um registo (usado para seleção)
@@ -190,7 +191,7 @@ class Browlist {
                             </select>
                         ` : ''}
                         <label for="${this.modalId}_search" class="visually-hidden">${this.options.texts.search}</label>
-                        <input type="text" class="form-control" id="${this.modalId}_search"
+                        <input type="text" data-vk class="form-control" id="${this.modalId}_search"
                                placeholder="${this.options.texts.search}" aria-label="${this.options.texts.search}">
                     </div>
                 </div>
@@ -554,22 +555,26 @@ class Browlist {
 
         let headerHTML = '<tr>';
 
-        if (this.options.multipleSelection) {
-            headerHTML += `
-                <th scope="col" style="width: 40px;">
-                    <input type="checkbox" class="form-check-input" id="${this.modalId}_selectAll" aria-label="Selecionar todas as linhas visíveis">
-                </th>
-            `;
-        } else {
-            headerHTML += '<th scope="col" style="width: 40px;"></th>'; // Coluna para o radio button
+        // Modificação aqui
+        if (!this.options.hideSelectionColumn) { // Se não for para ocultar a coluna de seleção
+            if (this.options.multipleSelection) {
+                headerHTML += `
+                    <th scope="col" style="width: 40px;">
+                        <input type="checkbox" class="form-check-input" id="${this.modalId}_selectAll" aria-label="Selecionar todas as linhas visíveis">
+                    </th>
+                `;
+            } else {
+                headerHTML += '<th scope="col" style="width: 40px;"></th>'; // Coluna para o radio button
+            }
         }
 
+
         this.options.columns.forEach(col => {
-            const sortable = col.sortable !== false && this.options.sortable; // Se sortable for undefined ou true, considera como sortable
+            const sortable = col.sortable !== false && this.options.sortable;
             const sortIcon = this.getSortIcon(col.field);
             const ariaSort = (this.sortColumn === col.field)
                 ? (this.sortDirection === 'asc' ? 'ascending' : 'descending')
-                : 'none'; // none significa não ordenado
+                : 'none';
 
             headerHTML += `
                 <th scope="col" ${sortable ? `style="cursor: pointer;" data-sort="${col.field}" aria-sort="${ariaSort}"` : ''}>
@@ -582,34 +587,17 @@ class Browlist {
         headerHTML += '</tr>';
         thead.innerHTML = headerHTML;
 
-        // Eventos de ordenação
-        thead.querySelectorAll('[data-sort]').forEach(th => {
-            // Armazenar referência para remoção no destroy
-            const handler = () => {
-                const field = th.getAttribute('data-sort');
-                if (this.sortColumn === field) {
-                    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-                } else {
-                    this.sortColumn = field;
-                    this.sortDirection = 'asc';
-                }
-                this.currentPage = 1;
-                this.loadData();
-            };
-            th.addEventListener('click', handler);
-            this.delegatedEventListeners.set(th, handler); // Armazenar para limpeza
-        });
-
-        // Evento select all
-        if (this.options.multipleSelection) {
+        // ... restante da função
+        // Evento select all (também deve ser condicional)
+        if (this.options.multipleSelection && !this.options.hideSelectionColumn) { // Adicionar !this.options.hideSelectionColumn
             const selectAllCheckbox = document.getElementById(`${this.modalId}_selectAll`);
             if (selectAllCheckbox) {
-                // Armazenar referência para remoção no destroy
-                const handler = (e) => {
+                selectAllCheckbox.addEventListener('change', (e) => {
                     this.toggleSelectAll(e.target.checked);
-                };
-                selectAllCheckbox.addEventListener('change', handler);
-                this.delegatedEventListeners.set(selectAllCheckbox, handler); // Armazenar para limpeza
+                });
+                this.delegatedEventListeners.set(selectAllCheckbox, (e) => {
+                    this.toggleSelectAll(e.target.checked);
+                });
             }
         }
     }
@@ -626,11 +614,12 @@ class Browlist {
         this.clearDelegatedEventListeners();
 
         if (this.data.length === 0) {
-            // Verifica se há termo de pesquisa para exibir a mensagem apropriada
             const message = this.searchTerm ? this.options.texts.noSearchResults : this.options.texts.noResults;
+            // Ajustar o colspan se a coluna de seleção estiver oculta
+            const colspan = this.options.columns.length + (this.options.hideSelectionColumn ? 0 : 1);
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="${this.options.columns.length + 1}" class="text-center text-muted py-4">
+                    <td colspan="${colspan}" class="text-center text-muted py-4">
                         ${message}
                     </td>
                 </tr>
@@ -647,23 +636,25 @@ class Browlist {
 
             bodyHTML += `<tr data-index="${index}" data-record-id="${recordId}" ${isSelected ? 'class="table-active"' : ''}>`;
 
-            // Coluna de seleção
-            if (this.options.multipleSelection) {
-                bodyHTML += `
-                    <td role="gridcell">
-                        <input type="checkbox" class="form-check-input row-select"
-                               data-index="${index}" ${isSelected ? 'checked' : ''}
-                               aria-label="Selecionar linha">
-                    </td>
-                `;
-            } else {
-                bodyHTML += `
-                    <td role="gridcell">
-                        <input type="radio" class="form-check-input row-select"
-                               name="record_select_${this.modalId}" data-index="${index}" ${isSelected ? 'checked' : ''}
-                               aria-label="Selecionar linha">
-                    </td>
-                `;
+            // Coluna de seleção (Modificação aqui)
+            if (!this.options.hideSelectionColumn) { // Se não for para ocultar a coluna de seleção
+                if (this.options.multipleSelection) {
+                    bodyHTML += `
+                        <td role="gridcell">
+                            <input type="checkbox" class="form-check-input row-select"
+                                   data-index="${index}" ${isSelected ? 'checked' : ''}
+                                   aria-label="Selecionar linha">
+                        </td>
+                    `;
+                } else {
+                    bodyHTML += `
+                        <td role="gridcell">
+                            <input type="radio" class="form-check-input row-select"
+                                   name="record_select_${this.modalId}" data-index="${index}" ${isSelected ? 'checked' : ''}
+                                   aria-label="Selecionar linha">
+                        </td>
+                    `;
+                }
             }
 
             // Colunas de dados
@@ -672,7 +663,7 @@ class Browlist {
 
                 if (col.render && typeof col.render === 'function') {
                     try {
-                        cellContent = col.render.call(this, row, col.field, index); // 'this' context for render
+                        cellContent = col.render.call(this, row, col.field, index);
                     } catch (renderError) {
                         console.error(`RecordSelector: Erro ao renderizar coluna '${col.field}':`, renderError);
                         cellContent = `[Erro ao renderizar]`;
@@ -689,20 +680,21 @@ class Browlist {
 
         tbody.innerHTML = bodyHTML;
 
-        // Eventos de seleção (delegados)
-        const rowSelectHandler = (e) => {
-            if (e.target.classList.contains('row-select')) {
-                const index = parseInt(e.target.getAttribute('data-index'));
-                this.toggleRowSelection(index, e.target.checked, e.target);
-            }
-        };
-        tbody.addEventListener('change', rowSelectHandler);
-        this.delegatedEventListeners.set(tbody, rowSelectHandler); // Armazenar para limpeza (map key é o elemento, value é o handler)
+        // Eventos de seleção (delegados) - também deve ser condicional
+        if (!this.options.hideSelectionColumn) { // Adicionar !this.options.hideSelectionColumn
+            const rowSelectHandler = (e) => {
+                if (e.target.classList.contains('row-select')) {
+                    const index = parseInt(e.target.getAttribute('data-index'));
+                    this.toggleRowSelection(index, e.target.checked, e.target);
+                }
+            };
+            tbody.addEventListener('change', rowSelectHandler);
+            this.delegatedEventListeners.set(tbody, rowSelectHandler);
+        }
 
-        // Eventos personalizados em elementos da tabela (delegação)
         this.bindCustomCellEvents(tbody);
     }
-
+    
     /**
      * Vincula eventos personalizados aos elementos da tabela usando delegação.
      * @private
@@ -815,15 +807,62 @@ class Browlist {
     toggleSelectAll(selectAll) {
         if (!this.options.multipleSelection) return;
 
+        const currentVisibleRecordIds = new Set(this.data.map(row => this.getNestedValue(row, this.options.recordIdField)));
+
+        if (selectAll) {
+            // Adiciona todos os registos visíveis que ainda não estão selecionados
+            this.data.forEach(row => {
+                const recordId = this.getNestedValue(row, this.options.recordIdField);
+                if (recordId !== undefined && recordId !== null) {
+                    if (!this.selectedRecords.some(r => this.getNestedValue(r, this.options.recordIdField) === recordId)) {
+                        this.selectedRecords.push(row);
+                    }
+                } else {
+                    // Fallback para objetos sem ID (menos ideal)
+                    if (!this.selectedRecords.some(r => JSON.stringify(r) === JSON.stringify(row))) {
+                        this.selectedRecords.push(row);
+                    }
+                }
+            });
+        } else {
+            // Remove apenas os registos visíveis da seleção
+            if (this.options.recordIdField) {
+                this.selectedRecords = this.selectedRecords.filter(selectedRec => {
+                    const selectedRecId = this.getNestedValue(selectedRec, this.options.recordIdField);
+                    // Manter o registo selecionado se não for um dos registos atualmente visíveis
+                    return !currentVisibleRecordIds.has(selectedRecId);
+                });
+            } else {
+                // Se não houver recordIdField, a remoção é mais complexa, potencialmente removendo
+                // todas as seleções que correspondem aos JSON.stringify dos registos visíveis.
+                // Para simplificar e evitar problemas com objetos complexos, considerar
+                // que esta funcionalidade é melhor com um recordIdField.
+                // Para um cenário sem recordIdField, teríamos que comparar cada objeto.
+                // O exemplo abaixo é uma abordagem simplificada que pode não ser totalmente robusta:
+                const currentVisibleRecordsJSON = new Set(this.data.map(row => JSON.stringify(row)));
+                this.selectedRecords = this.selectedRecords.filter(selectedRec => {
+                    return !currentVisibleRecordsJSON.has(JSON.stringify(selectedRec));
+                });
+            }
+        }
+
+        // Atualiza os checkboxes da UI e o destaque das linhas
         document.querySelectorAll(`#${this.modalId} .row-select[type="checkbox"]`).forEach(input => {
             const index = parseInt(input.getAttribute('data-index'));
-            // Só altera se o estado for diferente para evitar loops infinitos ou eventos desnecessários
-            if (input.checked !== selectAll) {
-                input.checked = selectAll;
-                this.toggleRowSelection(index, selectAll, input);
+            const row = this.data[index];
+            const recordId = this.getNestedValue(row, this.options.recordIdField);
+            
+            let isSelected = false;
+            if (recordId !== undefined && recordId !== null) {
+                isSelected = this.selectedRecords.some(r => this.getNestedValue(r, this.options.recordIdField) === recordId);
+            } else {
+                isSelected = this.selectedRecords.some(r => JSON.stringify(r) === JSON.stringify(row));
             }
+            input.checked = isSelected;
         });
+
         this.updateSelectAllState(); // Assegura que o estado final é consistente
+        this.updateRowHighlight(); // Garante que as linhas selecionadas são realçadas
     }
 
     /**
@@ -831,7 +870,7 @@ class Browlist {
      * @private
      */
     updateSelectAllState() {
-        if (!this.options.multipleSelection) return;
+        if (!this.options.multipleSelection || this.options.hideSelectionColumn) return; // Adicionar this.options.hideSelectionColumn
 
         const selectAllCheckbox = document.getElementById(`${this.modalId}_selectAll`);
         if (!selectAllCheckbox) return;
@@ -842,7 +881,7 @@ class Browlist {
         if (rowCheckboxes.length === 0) {
             selectAllCheckbox.indeterminate = false;
             selectAllCheckbox.checked = false;
-            selectAllCheckbox.disabled = true; // Desabilita se não há linhas
+            selectAllCheckbox.disabled = true;
         } else {
             selectAllCheckbox.disabled = false;
             if (checkedBoxes.length === 0) {
@@ -853,7 +892,7 @@ class Browlist {
                 selectAllCheckbox.checked = true;
             } else {
                 selectAllCheckbox.indeterminate = true;
-                selectAllCheckbox.checked = false; // Indeterminado não é "marcado"
+                selectAllCheckbox.checked = false;
             }
         }
     }
@@ -865,13 +904,12 @@ class Browlist {
     updateRowHighlight() {
         document.querySelectorAll(`#${this.modalId} tbody tr`).forEach(tr => {
             const recordIdAttr = tr.getAttribute('data-record-id');
-            const index = parseInt(tr.getAttribute('data-index')); // Fallback para índice se ID não existe/é inválido
+            const index = parseInt(tr.getAttribute('data-index'));
 
             let isSelected = false;
-            if (recordIdAttr !== 'undefined' && recordIdAttr !== 'null') { // Verifica se o ID é válido como string
+            if (recordIdAttr !== 'undefined' && recordIdAttr !== 'null') {
                 isSelected = this.selectedRecords.some(r => String(this.getNestedValue(r, this.options.recordIdField)) === recordIdAttr);
             } else {
-                // Fallback para comparação de objeto completo se o ID não for válido ou estiver ausente
                 const row = this.data[index];
                 if (row) {
                     isSelected = this.selectedRecords.some(r => JSON.stringify(r) === JSON.stringify(row));
@@ -880,10 +918,12 @@ class Browlist {
 
             tr.classList.toggle('table-active', isSelected);
 
-            // Também atualiza o estado do checkbox/radio da linha
-            const input = tr.querySelector('.row-select');
-            if (input) {
-                input.checked = isSelected;
+            // Também atualiza o estado do checkbox/radio da linha (apenas se a coluna de seleção não estiver oculta)
+            if (!this.options.hideSelectionColumn) { // Adicionar esta condição
+                const input = tr.querySelector('.row-select');
+                if (input) {
+                    input.checked = isSelected;
+                }
             }
         });
     }
