@@ -483,7 +483,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     if(type === "CART") {
                         const rackCodeEl = document.getElementById('cart-code');
                         if(rackCodeEl) {
-                            rackCodeEl.value = barcodeData;
+                            console.log(data);
+                            rackCodeEl.value = data.codigo;
                             rackCodeEl.dispatchEvent(new Event("change"));
                         }
                     } else {
