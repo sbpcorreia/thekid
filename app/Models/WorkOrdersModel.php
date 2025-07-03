@@ -14,20 +14,7 @@ class WorkOrdersModel extends Model {
         $query = "SELECT COUNT(u_tabof.u_tabofstamp) AS count ";
         $query .= "FROM TECNOLANEMA..u_tabof (NOLOCK) ";
         $query .= "WHERE u_tabof.idto IN (4) ";
-        if(!empty($search)) {
-            if($searchColumn == "global") {
-                $query .= "AND (";
-                foreach($columns as $key => $value) {
-                    if($key > 0) {
-                        $query .= "OR ";
-                    }
-                    $query .= "$columns[$key] = '%{$search}%' ";
-                }
-                $query .= "(";
-            } else {
-                $query .= " AND $searchColumn LIKE '%{$searchColumn}%' ";
-            }            
-        }
+        $query .= "AND u_tabof.numof LIKE '%". $search. "%'";       
         $result = $this->db->query($query)->getRow();
         return $result->count;
     }
@@ -38,25 +25,9 @@ class WorkOrdersModel extends Model {
         $query = "SELECT u_tabof.u_tabofstamp AS id, u_tabof.u_tabofstamp AS oristamp, u_tabof.numof AS orindoc, 'Ordem de Fabrico' AS orinmdoc ";
         $query .= "FROM TECNOLANEMA..u_tabof (NOLOCK) ";
         $query .= "WHERE u_tabof.idto IN (4) ";
-        if(!empty($search)) {
-            if($searchColumn == "global") {
-                $query .= "AND (";
-                foreach($columns as $key => $value) {
-                    if($key > 0) {
-                        $query .= "OR ";
-                    }
-                    $query .= "$columns[$key] = '%{$search}%' ";
-                }
-                $query .= "(";
-            } else {
-                $query .= " AND $searchColumn LIKE '%{$searchColumn}%' ";
-            }            
-        }
-        if(!empty($sortColumn)) {
-            $query .= "ORDER BY $sortColumn $sortDirection ";
-        } else {
-            $query .= "ORDER BY u_tabof.numof ";
-        }
+        $query .= "AND u_tabof.numof LIKE '%". $search. "%'";       
+        $query .= "ORDER BY u_tabof.numof ";
+        
 
         $query .= "OFFSET {$offset} ROWS FETCH NEXT {$pageSize} ROWS ONLY ";
 

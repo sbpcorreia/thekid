@@ -13,20 +13,8 @@ class CutOrdersModel extends Model {
     public function countData($columns, $search = "", $searchColumn = "") {
         $builder = $this->db->table($this->table);
         $builder->selectCount("u_ordemcortestamp", "count");
-        if(!empty($search)) {
-            if($searchColumn == "global") {
-                foreach($columns as $key => $value) {
-                    if($key == 0) {
-                        $builder->like($columns[$key], $search, "both");
-                    } else {
-                        $builder->orLike($columns[$key], $search, "both");
-                    }
-                }
-            } else {
-                $builder->like($searchColumn, $searchColumn);
-            }
-        }
-        $builder->whereNotIn("estado", array(7,8));
+        $builder->like("numordem",$search, "both");
+        //$builder->whereNotIn("estado", array(7,8));
         $query = $builder->get();
         $res = $query->getRow();
         return $res->count;
@@ -36,20 +24,8 @@ class CutOrdersModel extends Model {
         $builder = $this->db->table($this->table);
         $builder->select("u_ordemcortestamp AS id, numordem [orindoc], u_ordemcortestamp [oristamp], 'Ordem de corte' [orinmdoc]", false);
 
-        if(!empty($search)) {
-            if($searchColumn == "global") {
-                foreach($columns as $key => $value) {
-                    if($key == 0) {
-                        $builder->like($columns[$key], $search, "both");
-                    } else {
-                        $builder->orLike($columns[$key], $search, "both");
-                    }
-                }
-            } else {
-                $builder->like($searchColumn, $searchColumn);
-            }
-        }
-        $builder->whereNotIn("estado", array(7,8));
+        $builder->like("numordem",$search, "both");
+        //$builder->whereNotIn("estado", array(7,8));
         if(!empty($sortColumn)) {
             $builder->orderBy($sortColumn, $sortDirection);
         }  
