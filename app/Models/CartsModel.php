@@ -30,7 +30,7 @@ class CartsModel extends Model {
         }
         $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo", "left");
         $builder->groupStart();
-        $builder->whereIn("u_kidtask.estado", array(9));
+        $builder->whereIn("u_kidtask.estado", array(9,5));
         $builder->orWhere("u_kidtask.u_kidtaskstamp IS NULL", "", false);
         $builder->groupEnd();
         $query = $builder->get();
