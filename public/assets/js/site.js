@@ -536,16 +536,14 @@ document.addEventListener("DOMContentLoaded", () => {
             
             console.log(`A tentar remover o item com podCode: ${podCode}`);
 
+            const formData = new FormData();
+            formData.append("podCode", podCode);
+            formData.append("unloadLocation", unloadLocation);
+
             try {
                 const response = await fetch(`${sbData.site_url}unloadCart`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ 
-                        podCode: podCode, 
-                        unloadLocation : unloadLocation 
-                    }),
+                    body: formData
                 });
 
                 const result = await response.json();
