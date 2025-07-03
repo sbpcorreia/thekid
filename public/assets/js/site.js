@@ -1015,16 +1015,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function chooseLocation(formData) {
-        const selectId = `categorySelect-${Date.now()}`; // ID único para o select
+        const selectId = `categorySelect-${Date.now()}`;
 
-        // HTML inicial da modal com um select vazio e um placeholder
         let modalContent = `
             <p>Por favor, selecione o local de descarga:</p>
             <select id="${selectId}" class="form-select">
                 <option value="">A carregar locais...</option>
             </select>
         `;
-        
+
         const buttons = [
             {
                 text: 'Selecionar local',
@@ -1033,22 +1032,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 action: async () => {
                     const selectElement = document.getElementById(selectId);
                     const selectedValue = selectElement.value;
-                    const selectedText = selectElement.options[selectElement.selectedIndex].text;
 
                     if (selectedValue) {
                         formData.append("destination", selectedValue);
 
-
-                        // Supondo que você tem um endpoint de API para upload em '/api/upload-product'
                         const result = await sendFormDataToServer(`${sbData.site_url}sendTask`, formData, 'POST');           
                         
                         showApiResponseToast(result);
                         if(result.type === "success") {
                             resetForm();
+                            await SbModal.closeModal(); // Add this line to close the modal on success
                         } 
                         return;
-                        
-
                     } else {
                         Toast.create("Aviso", "Deve indicar um local de descarga válido!", TOAST_STATUS.WARNING, 5000);
                         return false;
@@ -1059,11 +1054,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 text: 'Cancelar',
                 icon: 'bi-x-lg',
                 variant: 'danger',
-                dataBsDismiss: 'modal' // Este botão fecha a modal automaticamente
+                dataBsDismiss: 'modal'
             }
         ];
 
-        // Abre a modal inicialmente com o conteúdo de "carregando..."
         SbModal.custom({
             title: 'Local de descarga',
             content: modalContent,
@@ -1071,13 +1065,11 @@ document.addEventListener("DOMContentLoaded", () => {
             showDefaultCloseButton: false
         });
 
-        // --- Parte onde o fetch e o preenchimento acontecem ---
         try {
-            const categories = await fetchDestinationsFromAPI(); // Faz a requisição à API
-        
+            const categories = await fetchDestinationsFromAPI();
             const selectElement = document.getElementById(selectId);
             if (selectElement) {
-                selectElement.innerHTML = '<option value=""></option>'; // Limpa e adiciona a opção padrão
+                selectElement.innerHTML = '<option value=""></option>';
                 categories.forEach(category => {
                     const option = document.createElement('option');
                     option.value = category.id;
@@ -1087,14 +1079,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } catch (error) {
             console.error('Erro ao carregar categorias:', error);
-            //// Exemplo: Mostrar um erro na modal ou fechá-la e mostrar um toast
-            //const selectElement = document.getElementById(selectId);
-            //if (selectElement) {
-            //     selectElement.innerHTML = '<option value="">Erro ao carregar</option>';
-            //     selectElement.disabled = true;
-            //}
-            //alert('Não foi possível carregar as categorias. Tente novamente.');
-            SbModal.closeModal(); // Opcional: fechar a modal em caso de erro fatal
+            SbModal.closeModal();
         }
     }
 
