@@ -26,9 +26,7 @@ class CutOrdersModel extends Model {
 
         $builder->like("numordem",$search, "both");
         //$builder->whereNotIn("estado", array(7,8));
-        if(!empty($sortColumn)) {
-            $builder->orderBy($sortColumn, $sortDirection);
-        }  
+        $builder->orderBy("numordem", $sortDirection);
         $query = $builder->get($pageSize, ($pageSize) * ($page-1));
         return $query->getResult();    
     }

@@ -364,7 +364,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "CUTORDER": {
             modalTitle: 'Selecionar Ordem de Corte',
             columns: [
-                { field: 'orinmdoc', title : 'Documento', sortable: true, searchable : true },
+                { field: 'orinmdoc', title : 'Documento', sortable: false, searchable : false },
                 { field: 'orindoc', title: 'N.º', sortable: true, searchable: true }
             ],
             requestType: 'CUTORDER'
@@ -372,7 +372,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "WORKORDER": {
             modalTitle: 'Selecionar Ordem de Fabrico',
             columns: [
-                { field: 'orinmdoc', title: 'Documento', sortable: true, searchable: true },
+                { field: 'orinmdoc', title: 'Documento', sortable: false, searchable: false },
                 { field: 'orindoc', title: 'N.º', sortable : true, searchable : true }
             ],
             requestType: 'WORKORDER'
