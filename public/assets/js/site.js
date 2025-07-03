@@ -1239,6 +1239,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     label: 'Artigo',
                     value: 2,
                     action: () => loadItemData("ARTICLE")
+                },
+                {
+                    label: 'Ordem de fabrico',
+                    value: 3,
+                    action: () => loadItemData("WORKORDER")
                 }
             ],
             "TECNOLANEMA": [
