@@ -357,10 +357,12 @@ class Home extends BaseController
             ]);
         }
 
-        $priority = strval($priority) ?? "10";
+        if(!$priority) {
+            $priority = 10;
+        } 
 
         $taskStamp = newStamp("TSK");
-        $result = $this->taskModel->addNewTask($taskStamp, $cartCode, $origin, $destination, $priority, "TSK");
+        $result = $this->taskModel->addNewTask($taskStamp, $cartCode, $origin, $destination, intval($priority), "TSK");
         if(!$result) {
             return $this->response->setJSON([
                 "type" => "error",
