@@ -556,6 +556,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         card.addEventListener('transitionend', () => {
                             card.remove();
                             showApiResponseToast(result);
+                            updateCartContainerState();
                         }, { once: true }); 
                     } else {
                         showApiResponseToast(result);
@@ -565,6 +566,7 @@ document.addEventListener("DOMContentLoaded", () => {
             } catch (error) {
                 console.error('Erro ao fazer a requisição para remover o item:', error);
             }
+            
         }
     }
 
