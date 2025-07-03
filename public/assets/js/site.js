@@ -547,17 +547,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 const result = await response.json();
-                console.log('Resposta do servidor:', result);
 
-                if (response.type == "success") {
-                    card.classList.remove('show');
-                    card.addEventListener('transitionend', () => {
-                        card.remove();
-                        showApiResponseToast(response);
-                    }, { once: true }); 
-                } else {
-                    showApiResponseToast(response);
+                if(response.ok) {
+                    console.log('Resposta do servidor:', result);
+
+                    if (result.type == "success") {
+                        card.classList.remove('show');
+                        card.addEventListener('transitionend', () => {
+                            card.remove();
+                            showApiResponseToast(result);
+                        }, { once: true }); 
+                    } else {
+                        showApiResponseToast(result);
+                    }
                 }
+                
             } catch (error) {
                 console.error('Erro ao fazer a requisição para remover o item:', error);
             }
