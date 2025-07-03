@@ -569,7 +569,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const changePodButton = document.getElementById("change-cart");
         const addButton = document.getElementById("add-item");
         const sendButton = document.getElementById("send-to-robot");
-        if (!container || !changeCartBtn || !addButton || !sendButton) {
+        if (!container || !changePodButton || !addButton || !sendButton) {
             console.error('Um ou mais elementos de UI não foram encontrados.');
             return;
         }
