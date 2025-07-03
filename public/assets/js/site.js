@@ -1,3 +1,5 @@
+
+
 // Cache de elementos DOM e configurações
 const RobotUI = {
     cache: {
@@ -485,6 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
         newCartItems.forEach(item => {
             const existingCard = container.querySelector(`[data-cart="${item.podCode}"]`);
             if (!existingCard) {
+                
                 // Se o cartão não existe, cria um novo
                 const card = document.createElement('div');
                 card.classList.add('card', 'text-bg-warning', 'shadow-sm', 'mb-3', 'fade'); // Adiciona 'fade' para animação
@@ -514,7 +517,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     await handleUnloadCart(event);
                 };
 
-                console.log(`Cartão para ${item.podCode} adicionado.`);
+                SbModal.alert("Existem carrinhos a descarregar!!!!");
             } 
         });
         updateCartContainerState();
@@ -579,7 +582,7 @@ document.addEventListener("DOMContentLoaded", () => {
             addButton.setAttribute('disabled', 'disabled');
             sendButton.setAttribute('disabled', 'disabled');  
             
-            SbModal.alert("Existem carrinhos a descarregar!!!!");
+           // 
         } else {
             changePodButton.removeAttribute("disabled");
             addButton.removeAttribute('disabled');
