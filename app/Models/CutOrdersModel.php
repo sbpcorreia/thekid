@@ -66,6 +66,6 @@ class CutOrdersModel extends Model {
         $builder->select("u_ordemcortestamp AS id, numordem [orindoc], u_ordemcortestamp [oristamp], 'Ordem de corte' [orinmdoc]", false);
         $builder->where("u_ordemcortestamp", $cutOrderStamp);
         $query = $builder->get();
-        return $query->getResult();
+        return $query->getRow();
     }
 }
