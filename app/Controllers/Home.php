@@ -268,7 +268,7 @@ class Home extends BaseController
             ]);
         } else if($type == "CUTORDERPU") {
             $cutOrderStamp    = str_replace(";", "", trim($barcodeData));
-            $cutOrder = $this->cutOrdersModel->getDataByCode($cutOrderStamp);
+            $cutOrder = $this->cutOrdersModel->getDataByStamp($cutOrderStamp);
             if(empty($cutOrder)) {
                 return $this->response->setJSON([
                     "type" => "warning",
