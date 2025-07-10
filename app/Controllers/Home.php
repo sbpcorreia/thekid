@@ -144,10 +144,10 @@ class Home extends BaseController
         $requestType = $inputData->requestType;
         $pageSize = $inputData->pageSize;
         $page = $inputData->page;
-        $search = $inputData->search;
-        $searchColumn = $inputData->searchColumn;
-        $sortColumn = $inputData->sortColumn;
-        $sortDirection = $inputData->sortDirection;
+        $search = $inputData->searchTerm ?? "";
+        $searchColumn = $inputData->searchColumn ?? "";
+        $sortColumn = $inputData->sortColumn ?? "";
+        $sortDirection = $inputData->sortDirection ?? "";
         $totalRecords = 0;
 
         if($requestType === "CART") {
