@@ -50,7 +50,7 @@ class CartsModel extends Model {
                 }
                 $builder->groupEnd();
             } else {
-                $builder->like($searchColumn, $searchColumn);
+                $builder->like($searchColumn, $search);
             }
         }
         if(!empty($sortColumn)) {

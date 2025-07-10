@@ -24,8 +24,8 @@ class TaskScheduler extends BaseCommand
         $logger = Services::logger();
         $logger->info('A iniciar Task Scheduler...'); 
 
-        $this->tasksModel = new TaskModel();
-        $this->webserviceModel = new WebServiceModel();
+        $this->tasksModel       = new TaskModel();
+        $this->webserviceModel  = new WebServiceModel();
 
         while (true) {
             $logger->info('Checking for tasks at ' . date('Y-m-d H:i:s'));
@@ -41,7 +41,9 @@ class TaskScheduler extends BaseCommand
                 $pendingTasks = $this->tasksModel->getPendingTasks();
                 if(!empty($pendingTasks)) {
                     $this->updateTaskStatusFromRobot($pendingTasks, $logger);
-                }                
+                }  
+                
+                
             } catch (\Throwable $e) { 
                 $logger->error('Ocorreu um erro na classe TaskScheduler: ' . $e->getMessage() . ' na linha ' . $e->getLine() . ' ficheiro ' . $e->getFile());
             }
@@ -53,8 +55,8 @@ class TaskScheduler extends BaseCommand
     private function sendTaskToRobot($task, $logger) {
         helper('utilis_helper');
 
-        $taskStamp = trim($task->u_kidtaskstamp);
-        $racks = [];
+        $taskStamp  = trim($task->u_kidtaskstamp);
+        $racks      = [];
 
         // VERIFICA SE A RACK ESTÁ NALGUMA LOCALIZAÇÃO
         $requestData = array(
@@ -118,8 +120,9 @@ class TaskScheduler extends BaseCommand
                     "type" => "00"
                 )
             ),
-            "priority" => $task->prioridade,
-            "taskCode" => $taskStamp
+            "priority" => $task->prioridade,            
+            "taskCode" => $taskStamp,
+            "podCode"   => $task->carrinho
         );
 
         try {           
@@ -134,6 +137,10 @@ class TaskScheduler extends BaseCommand
             } else {
                 $errorMessage = "Erro ao enviar a tarefa para o robot com a requisição " . $requestData['reqCode'] . ": " . ($responseData->message ?? 'Erro desconhecido da API');
                 $logger->error($errorMessage . " Resposta: " . json_encode($responseData));
+                $result = $this->tasksModel->updateTaskStatus($taskStamp, -1, 0, 0, "XAX", $responseData->code, $responseData->message);
+                if(!$result) {
+                    $logger->error("Ocorreu um erro ao atualizar o estado da tarefa na base de dados!");
+                }
             }        
         } catch (\CodeIgniter\HTTP\Exceptions\HTTPException $e) {
             $logger->error("Ocorreu um erro HTTP ao desvincular a localização a tarefa ".$taskStamp." (Requisição: " . $requestData['reqCode'] . "): " . $e->getMessage());

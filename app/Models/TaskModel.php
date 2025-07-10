@@ -82,7 +82,7 @@ class TaskModel extends Model {
         return $query->getResult();
     }
 
-    public function updateTaskStatus($taskStamp, $status, $points = 0, $estimatedTime = 0, $user = "XAX") {
+    public function updateTaskStatus($taskStamp, $status = -1, $points = 0, $estimatedTime = 0, $errorCode = "", $message = "") {
         $builder = $this->db->table($this->table);
         if($status == 2) {
             $builder->set("dtini", "CONVERT(DATE, GETDATE(), 104)", false);
@@ -92,13 +92,21 @@ class TaskModel extends Model {
             $builder->set("dtfim", "CONVERT(DATE, GETDATE(), 104)", false);
             $builder->set("hfim", "CONVERT(VARCHAR(8),GETDATE(), 108)", false);
         }   
-        $builder->set("estado", $status);
+        if($status > -1) {
+            $builder->set("estado", $status);
+        }        
         if(!$points > 0) {
             $builder->set("pontos", $points);
         }
         if($estimatedTime > 0) {
             $builder->set("tempo", $estimatedTime);
         }        
+        if(!empty($errorCode)) {
+            $builder->set("erro", $errorCode);
+        }
+        if(!empty($message)) {
+            $builder->set("ultmsg", $message);
+        }
         $builder->set("usrdata", "CONVERT(DATE, GETDATE(), 104)", false);
         $builder->set("usrhora", "CONVERT(VARCHAR(8), GETDATE(), 108)", false);
         $builder->where("u_kidtaskstamp", $taskStamp);

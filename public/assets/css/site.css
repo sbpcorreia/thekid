@@ -23,7 +23,7 @@ html, body {
     flex-grow: 1; /* Permite que a linha cresça e preencha o espaço disponível */
 }
 
-.col-md-6 { /* Adicione todas as classes de coluna relevantes aqui */
+.flex-col { /* Adicione todas as classes de coluna relevantes aqui */
     display: flex;
     flex-direction: column; /* Organiza os cards verticalmente */
     height: 100%; /* Faz a coluna ocupar 100% da altura da sua linha pai */

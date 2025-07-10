@@ -47,14 +47,13 @@
                         <label for="terminal" class="form-label">Terminal</label>
                         <select name="terminal" class="form-select">
                             <option value=""></option>
-<?php foreach($terminalList as $key => $value) : ?>
-<?php if($key == 0 || $value->empresa != $terminalList[$key-1]->empresa) : ?>
-                            <optgroup label="<?= $value->empresa; ?>">
-<?php endif; ?>
-                                <option value="<?= $value->codigo; ?>"<?= $terminalCode === $value->codigo ? " selected" : ""; ?>><?= sprintf("(%s) %s", $value->codigo, $value->descricao); ?></option>
-<?php if($key == 0 || $value->empresa != $terminalList[$key-1]->empresa) : ?>
+
+<?php foreach($terminalList as $empresa => $items) : ?>
+                            <optgroup label="<?= htmlspecialchars($empresa); ?>">
+<?php foreach($items as $item) : ?>
+                                <option value="<?= $item->codigo; ?>"<?= $terminalCode === $item->codigo ? " selected" : ""; ?>><?= sprintf("(%s) %s", $item->codigo, $item->descricao); ?></option>
+<?php endforeach; ?>
                             </optgroup>
-<?php endif; ?>
 <?php endforeach; ?>
                         </select>
                         <?php else : ?>
@@ -69,7 +68,7 @@
                 <div class="d-flex justify-content-end gap-2 border-top pt-3">
                 <?php if(!empty($terminalList)) : ?>
                     <button class="btn btn-success btn-lg">
-                        <i class="bi bi-save"></i>
+                        <i class="bi bi-check2"></i>
                         <span>Guardar</span>
                     </button>
                 <?php endif; ?>

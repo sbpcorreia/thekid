@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\ArticlesModel;
 use App\Models\CartsModel;
 use App\Models\CutOrdersModel;
+use App\Models\RulesModel;
 use App\Models\SpotModel;
 use App\Models\TaskLinesModel;
 use App\Models\TaskModel;
@@ -17,68 +18,84 @@ use CodeIgniter\HTTP\Response;
 class Home extends BaseController
 {
 
-    protected $cartsModel;
     protected $articlesModel;
+    protected $cartsModel;    
     protected $cutOrdersModel;
+    protected $ordersModel;
+    protected $rulesModel;
+    protected $spotsModel;
     protected $taskModel;
     protected $taskLinesModel;
+    protected $terminalModel;
     protected $workOrdersModel;
     protected $webServicesModel;
-    protected $spotsModel;
-    protected $ordersModel;
+
+
 
     public function __construct()
     {
-        $this->cartsModel = new CartsModel();
-        $this->articlesModel = new ArticlesModel();
-        $this->cutOrdersModel = new CutOrdersModel();
-        $this->taskModel = new TaskModel();
-        $this->taskLinesModel = new TaskLinesModel();
-        $this->workOrdersModel = new WorkOrdersModel();
+        $this->articlesModel    = new ArticlesModel();
+        $this->cartsModel       = new CartsModel();        
+        $this->cutOrdersModel   = new CutOrdersModel();
+        $this->ordersModel      = null;
+        $this->rulesModel       = new RulesModel();
+        $this->spotsModel       = new SpotModel();
+        $this->taskModel        = new TaskModel();
+        $this->taskLinesModel   = new TaskLinesModel();
+        $this->terminalModel    = new TerminalModel();
         $this->webServicesModel = new WebServiceModel();
-        $this->spotsModel = new SpotModel();
-        $this->ordersModel = null;
+        $this->workOrdersModel  = new WorkOrdersModel();        
     }
 
     public function index()
     {
-        $company = $loadArea = $unloadArea = "";
-        $terminalCode = $this->request->getCookie("terminalCode");
+        $config                             = new \Config\WebSocket;
+        $company                            = "";
+        $multiLoad                          = false;
+        $terminalCode                       = $this->request->getCookie("terminalCode");        
+        $addressToListen                    = $config->addressToListen;
+        $portToListen                       = $config->portToListen;
 
-        $terminalModel = new TerminalModel();
-        //log_message("error", json_encode($terminalCode));
+        $terminalList                       = $this->terminalModel->getTerminalList();
 
-        $config             = new \Config\WebSocket;
-        $addressToListen  = $config->addressToListen;
-        $portToListen     = $config->portToListen;
-
-        $terminalList = $terminalModel->getTerminalList();
-
-        $this->pageData["javascriptData"] = array(
+        $this->pageData["javascriptData"]   = array(
             "site_url"  => site_url(),
             "ws_url"    => sprintf("ws://%s:%d", $addressToListen, $portToListen),
             "pwd"       => base64_encode("Lanema123")
         );
 
-        $this->navbarData["terminalCode"] = $terminalCode;
-        $this->navbarData["terminalList"] = $terminalList;
-
-        if(!empty($terminalCode)) {
-            $terminal = $terminalModel->getTerminalInfo($terminalCode);
-            if($terminal != null) {
-                $this->navbarData["terminalDescription"] = $terminal->descricao;
-                
-                $company    = $terminal->empresa;
-                $loadArea   = $terminal->ponto;
-                $unloadArea = !empty($terminal->ponto2) ? $terminal->ponto2 : $terminal->ponto;
+        $groupedData = [];
+        foreach ($terminalList as $item) {
+            $empresa = $item->empresa;
+            if (!isset($groupedData[$empresa])) {
+                $groupedData[$empresa] = [];
             }
+            $groupedData[$empresa][] = $item;
         }
 
+        $this->navbarData["terminalCode"]   = $terminalCode;
+        $this->navbarData["terminalList"]   = $groupedData;
+
+
+
+        if(!empty($terminalCode)) {
+            $terminal                       = $this->terminalModel->getTerminalInfo($terminalCode);
+            if($terminal != null) {
+                $this->navbarData["terminalDescription"]    = $terminal->descricao;
+                $company                                    = $terminal->empresa;
+            }
+
+            $loadLocations = $this->spotsModel->getLoadLocations($terminalCode);
+            if(!empty($loadLocations) && count($loadLocations) > 1) {
+                $multiLoad = true;
+            }   
+        }
+
+        
         $viewData = array(
             "terminalCode"  => $terminalCode,
             "company"       => strtoupper($company),
-            "loadArea"      => $loadArea,
-            "unloadArea"    => $unloadArea
+            "multiLoad"     => $multiLoad
         );
         
         echo view("base/header", $this->pageData);
@@ -89,12 +106,11 @@ class Home extends BaseController
         echo view("base/footer", $this->pageData);
     }
 
-    public function loadTaskArea($terminalCode, $company, $loadArea, $unloadArea) {
+    public function loadTaskArea($terminalCode, $company, $multiLoad = false) {
         $viewData = array(
             "terminalCode"  => $terminalCode,
             "company"       => $company,
-            "loadArea"      => $loadArea,
-            "unloadArea"    => $unloadArea
+            "multiLoad"     => intval($multiLoad)
         );
         return view("view_cells/new_task", $viewData);
     }
@@ -272,9 +288,31 @@ class Home extends BaseController
         ]);
     }    
 
-    public function getUnloadLocations($unloadLocation = "") : ResponseInterface {
-        $unloadSpots = $this->spotsModel->getUnloadLocations($unloadLocation);
+    public function getUnloadLocations($currentTerminal, $multi) : ResponseInterface {
+        $unloadSpots = $this->spotsModel->getUnloadLocationsExcludingTerminal($currentTerminal);
+
+        if($multi == 1) {
+            foreach($unloadSpots as $key => $value) {
+                $unloadDock = $unloadSpots[$key]->id;
+                $unloadSpots[$key]->rule = "";
+                $ruleInfo = $this->rulesModel->getRule($currentTerminal, $unloadDock);
+                if(!empty($ruleInfo)) {
+                    $loadDock = $ruleInfo->ponto1;
+                    $unloadSpots[$key]->rule = $loadDock;
+                } else {
+                    $defaultLoadDock = $this->spotsModel->getDefaultLoadingDock($currentTerminal);
+                    if(!empty($defaultLoadDock)) {
+                        $unloadSpots[$key]->rule = $defaultLoadDock;
+                    }
+                }
+            }
+        }
         return $this->response->setJSON($unloadSpots); 
+    }
+
+    public function getLoadLocations($currentTerminal) : ResponseInterface {
+        $loadDocks = $this->spotsModel->getLoadLocations($currentTerminal);
+        return $this->response->setJSON($loadDocks); 
     }
 
     public function postUnloadCart() : ResponseInterface {
@@ -335,25 +373,25 @@ class Home extends BaseController
 
         helper('utilis_helper');
 
-        $terminalCode = $request->getPost("terminalCode");
-        $origin = $request->getPost("loadArea");
-        $destination = $request->getPost("destination");
-        $cartCode = $request->getPost("cartCode");
-        $company = $request->getPost("company");
-        $taskLines = $request->getPost("taskd");
-        $priority = $request->getPost("priority");
+        $terminalCode       = $request->getPost("terminalCode");
+        $company            = $request->getPost("company");
+        $cartCode           = $request->getPost("cartCode");
+        $loadDock           = $request->getPost("loadDock");
+        $unloadDock         = $request->getPost("unloadDock");
+        $priority           = $request->getPost("priority");        
+        $taskLines          = $request->getPost("taskd");        
 
         if(!$terminalCode) {
             return $this->response->setJSON([
-                "type" => "error",
-                "message" => "Não foi definido o ID do terminal!"
+                "type"      => "error",
+                "message"   => "Não foi definido o ID do terminal!"
             ]);
         }
 
         if(empty($taskLines)) {
             return $this->response->setJSON([
-                "type" => "warning",
-                "message" => "Não foi indicado o conteúdo do carrinho!"
+                "type"      => "warning",
+                "message"   => "Não foi indicado o conteúdo do carrinho!"
             ]);
         }
 
@@ -361,8 +399,19 @@ class Home extends BaseController
             $priority = 10;
         } 
 
+        if(!$loadDock) {
+            $defaultDock = $this->spotsModel->getDefaultLoadingDock($terminalCode);
+            if(empty($defaultDock)) {
+                return $this->response->setJSON([
+                    "type"      => "error",
+                    "message"   => "Não foi possível determinar o cais de carga do terminal! Por favor, contacte administrador!"
+                ]);
+            }
+            $loadDock   = $defaultDock->ponto;
+        }
+
         $taskStamp = newStamp("TSK");
-        $result = $this->taskModel->addNewTask($taskStamp, $cartCode, $origin, $destination, intval($priority), "TSK");
+        $result = $this->taskModel->addNewTask($taskStamp, $cartCode, $loadDock, $unloadDock, intval($priority), "TSK");
         if(!$result) {
             return $this->response->setJSON([
                 "type" => "error",

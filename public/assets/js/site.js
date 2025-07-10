@@ -500,7 +500,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <i class="bi bi-cart-fill me-2"></i>
                             <span class="fw-bold">${item.podCode}</span>
                         </div>
-                        <button type="button" class="btn btn-danger rounded-pill unload-cart-btn" data-bs-toggle="tooltip" title="Descarregar carrinho ${item.podCode}">
+                        <button type="button" class="btn btn-danger btn-lg shardow-sm unload-cart-button" data-bs-toggle="tooltip" title="Descarregar carrinho ${item.podCode}">
                             <i class="bi bi-trash-fill"></i>
                         </button>
                     </div>
@@ -508,12 +508,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Adiciona o cartão e dispara a animação fade-in
                 container.appendChild(card);
+
                 // Força o reflow para garantir que a transição seja aplicada
                 void card.offsetWidth; 
                 card.classList.add('show'); // Adiciona 'show' para iniciar o fade-in
 
                 // Adiciona o event listener imediatamente após criar o botão
-                card.querySelector('.unload-cart-btn').onclick = async (event) => {
+                card.querySelector('.unload-cart-button').onclick = async (event) => {
                     await handleUnloadCart(event);
                 };
 
@@ -573,9 +574,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // NOVA FUNÇÃO: Gerencia o estado da mensagem e controlos
     function updateCartContainerState() {
         const container = document.getElementById('cart-unloading-container');
-        const changePodButton = document.getElementById("change-cart");
-        const addButton = document.getElementById("add-item");
-        const sendButton = document.getElementById("send-to-robot");
+        const changePodButton = document.getElementById("change-cart-button");
+        const addButton = document.getElementById("add-item-button");
+        const sendButton = document.getElementById("send-to-robot-button");
         if (!container || !changePodButton || !addButton || !sendButton) {
             console.error('Um ou mais elementos de UI não foram encontrados.');
             return;
@@ -666,17 +667,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const offcanvasRestrictedArea = new bootstrap.Offcanvas(document.getElementById('config-section'));
 
         const configForm = document.getElementById("config-form");
-        const rackToUnloadEl = document.getElementById('cart-to-unload');
         const rackCodeEl = document.getElementById('cart-code');
-        const changePodButton = document.getElementById("change-cart");
-        const addButton = document.getElementById('add-item');
+        const changePodButton = document.getElementById("change-cart-button");
+        const addButton = document.getElementById('add-item-button');
         const rackCodeSpan = document.getElementById('cart-code-id');
         const companyEl = document.getElementById('company');
-        const newTaskFrm = document.getElementById("new-task");
-        const itemArea = document.getElementById("item-collection");
+        const newTaskFrm = document.getElementById("new-task-form");
+        const itemArea = document.getElementById("item-collection-container");
         const mapButton = document.getElementById("robot-map");
         const showHistoryButton = document.getElementById("show-task-history");
-        const cancelButton = document.getElementById("cancel-task");
+        const cancelButton = document.getElementById("cancel-task-button");
         const correctPassword = sbData.pwd;
         
 
@@ -766,11 +766,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const browlistModal = new Browlist({
             multipleSelection: false,
             modalTitle: 'Selecionar carrinho',
+            modalSize: 'lg',
             dataSource: `${sbData.site_url}tableData`, 
             additionalParams: {
                 columnsToShow: browlistColumns,
                 requestType: 'CART',
             },
+            selectionColumnWidth: '60px',
+            selectionElementSizeClass: 'browlist-form-check-lg',
+            rowHeightClass: 'browlist-row-lg',
+            rowClickSelection: true, 
             httpMethod: 'POST',
             columns: browlistColumns, 
             pageSize: 10,
@@ -806,7 +811,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if(showHistoryButton) {
             showHistoryButton.addEventListener("click", async (e) => {
                 
-                historyBrowlist.open();
+                historyBrowlist.show();
             });
         }
 
@@ -869,7 +874,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 e.stopPropagation();
                 e.preventDefault();               
 
-                browlistModal.open();
+                browlistModal.show();
             });
         }
 
@@ -890,10 +895,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 let priority = false;
                 const botaoSubmetido = e.submitter;
 
-                if(rackToUnloadEl.value !== "") {
-                    Toast.create("Aviso", "Não é possível enviar a tarefa enquando o carrinho não for descarregado!", TOAST_STATUS.WARNING, 5000);
-                    return;
-                }
                 if(rackCodeEl.value == "") {
                     Toast.create("Aviso", "Deve indicar o carrinho onde estão as peças!", TOAST_STATUS.WARNING, 5000);
                     return;
@@ -925,10 +926,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function updateMainFormUI() {
         const rackCodeEl = document.getElementById("cart-code");
-        const itemsElement = document.getElementById("item-collection");
-        const sendButton = document.getElementById("send-to-robot");
-        const sendUrgentButton = document.getElementById("send-priority-to-robot")
-        const cancelButton = document.getElementById("cancel-task");
+        const itemsElement = document.getElementById("item-collection-container");
+        const sendButton = document.getElementById("send-to-robot-button");
+        const sendUrgentButton = document.getElementById("send-priority-to-robot-button")
+        const cancelButton = document.getElementById("cancel-task-button");
 
         if(rackCodeEl && sendButton && sendUrgentButton && cancelButton) {
             if(rackCodeEl.value == "" && itemsElement.childElementCount == 0) {
@@ -946,38 +947,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Simulação de uma API
-    async function fetchDestinationsFromAPI() {
-        const apiUrl = `${sbData.site_url}unloadLocations`; // O seu endpoint da API
-        const unloadAreaEl = document.getElementById("unloadArea");
-        let unloadArea = "";
-        if(unloadAreaEl) {
-            unloadArea = unloadAreaEl.value;
-        }
-
-        try {
-            const response = await fetch(apiUrl + `/${unloadArea}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            // Verifica se a resposta da rede foi bem-sucedida (status 200-299)
-            if (!response.ok) {
-                // Lança um erro se a resposta não for OK
-                const errorText = await response.text(); // Tenta ler o corpo da resposta como texto de erro
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-            }
-
-            const data = await response.json(); // Analisa o corpo da resposta como JSON
-            return data; // Retorna os dados (que esperamos que seja um array de categorias)
-
-        } catch (error) {
-            console.error('Erro ao fazer fetch das categorias:', error);
-            // Você pode relançar o erro, ou retornar um array vazio, dependendo do comportamento desejado
-            throw error; // Propaga o erro para que a função chamadora possa tratá-lo
-        }
-    }
+    
 
     async function showUnloadLocationsSelectionModal(formData, priority) {
         
@@ -1015,88 +985,112 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function chooseLocation(formData) {
-        const selectId = `categorySelect-${Date.now()}`;
+        let terminalCode = "";
+        let multiLoad = "0";
 
-        let modalContent = `
-            <p>Por favor, selecione o local de descarga:</p>
-            <select id="${selectId}" class="form-select">
-                <option value="">A carregar locais...</option>
-            </select>
-        `;
-
-        const buttons = [
-            {
-                text: 'Selecionar local',
-                icon: 'bi-check-circle',
-                variant: 'success',
-                action: async () => {
-                    const selectElement = document.getElementById(selectId);
-                    const selectedValue = selectElement.value;
-
-                    if (selectedValue) {
-                        formData.append("destination", selectedValue);
-
-                        const result = await sendFormDataToServer(`${sbData.site_url}sendTask`, formData, 'POST');           
-                        
-                        showApiResponseToast(result);
-                        if(result.type === "success") {
-                            resetForm();
-                            await SbModal.closeModal(); // Add this line to close the modal on success
-                        } 
-                        return;
-                    } else {
-                        Toast.create("Aviso", "Deve indicar um local de descarga válido!", TOAST_STATUS.WARNING, 5000);
-                        return false;
-                    }
-                }
-            },
-            {
-                text: 'Cancelar',
-                icon: 'bi-x-lg',
-                variant: 'danger',
-                dataBsDismiss: 'modal'
-            }
-        ];
-
-        SbModal.custom({
-            title: 'Local de descarga',
-            content: modalContent,
-            buttons: buttons,
-            showDefaultCloseButton: false
-        });
-
-        try {
-            const categories = await fetchDestinationsFromAPI();
-            const selectElement = document.getElementById(selectId);
-            if (selectElement) {
-                selectElement.innerHTML = '<option value=""></option>';
-                categories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category.id;
-                    option.textContent = category.name;
-                    selectElement.appendChild(option);
-                });
-            }
-        } catch (error) {
-            console.error('Erro ao carregar categorias:', error);
-            SbModal.closeModal();
+        const terminalCodeEl = document.getElementById("terminal-code");
+        const multiLoadingDockEl = document.getElementById("multi-load-dock");
+        if(terminalCodeEl) {
+            terminalCode = terminalCodeEl.value;
         }
+
+        if(multiLoadingDockEl) {
+            multiLoad = multiLoadingDockEl.value;
+        }
+        
+
+
+        const fields = {
+            "0" : [
+                {
+                    type : "select",
+                    label : "Local de descarga",
+                    id : "unloaddock",
+                    dataSource : `${sbData.site_url}unloadLocations/${terminalCode}/0`
+                }
+            ],
+            "1" : [
+                {
+                    type : "select",
+                    label : "Local de descarga",
+                    id : "unloaddock",
+                    dataSource : `${sbData.site_url}unloadLocations/${terminalCode}/1`,
+                    dataAttributesToMap : [ 'rule' ],
+                    events : {
+                        'change' : async(e) => {
+                            const selectedOption = e.target.options[e.target.selectedIndex];
+                            const caisKey = selectedOption.dataset.rule; // Lê o data-attribute
+                            const loadDockEl = document.getElementById("loaddock");
+                            console.log(caisKey);
+
+                            if(loadDockEl && caisKey != "") {
+                                loadDockEl.value = caisKey;                              
+                            }
+
+                        }
+                    }
+                },
+                {
+                    type : "select",
+                    label : "Local de carga",
+                    id : "loaddock",
+                    dataSource : `${sbData.site_url}loadLocations/${terminalCode}`
+                }
+            ]
+        };
+
+        await SbModal.form(
+            'Seleccionar local',
+            fields[multiLoad],
+            async (results) => {
+               
+                if(results.unloaddock == "") {
+                    Toast.create("Aviso", "Deve indicar um local de descarga válido!", TOAST_STATUS.WARNING, 5000);
+                    return false;
+                }
+
+                if(multiLoad == "1" && results.loaddock == "") {
+                    Toast.create("Aviso", "Deve indicar um local de carga válido!", TOAST_STATUS.WARNING, 5000);
+                    return false;
+                }
+                
+                formData.append("unloadDock", results.unloaddock);
+                if(multiLoad == "1") {
+                    formData.append("loadDock", results.loaddock);
+                }
+
+                const result = await sendFormDataToServer(`${sbData.site_url}sendTask`, formData, 'POST');  
+                showApiResponseToast(result);
+                if(result.type === "success") {
+                    resetForm();
+                } 
+
+            },
+            () => {
+                console.log('Seleção cancelada.');
+            },
+            { modalSize: 'lg' } // Torna a modal grande
+        );
+
+
+
+
+
+        
     }
 
     function resetForm() {
-        const cartToUnloadEl = document.getElementById("cart-to-unload");
         const cartCodeEl = document.getElementById("cart-code");
         const cartCodeSpanEl = document.getElementById("cart-code-id");
         const cartItems = document.querySelectorAll(".item-cart-content");
 
-        if(cartToUnloadEl && cartCodeEl && cartCodeSpanEl && cartItems) {
-            cartToUnloadEl.value = "";
+        if(cartCodeEl && cartCodeSpanEl && cartItems) {
             cartCodeEl.value = "";
             cartCodeEl.dispatchEvent(new Event("change"));
             cartCodeSpanEl.innerText = "- Não definido -";
 
             cartItems.forEach(item => {
-                const removeButton = item.querySelector(".remove-from-cart");
+                const removeButton = item.querySelector(".remove-from-cart-button");
                 if(removeButton) {
                     removeButton.dispatchEvent(new Event("click"));
                 }
@@ -1104,8 +1098,6 @@ document.addEventListener("DOMContentLoaded", () => {
             
         }
     }
-
-
 
     /**
      * Envia um objeto FormData para um endpoint da API.
@@ -1333,7 +1325,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const itemDeleteButton = document.createElement("button");
         itemDeleteButton.type = "button";
-        itemDeleteButton.className = "btn btn-danger btn-lg rounded-pill remove-from-cart";
+        itemDeleteButton.className = "btn btn-danger btn-lg rounded-pill remove-from-cart-button";
 
         const handleDeleteClick = (e) => {
             e.preventDefault();
@@ -1368,7 +1360,7 @@ document.addEventListener("DOMContentLoaded", () => {
         itemCardBody.appendChild(itemDeleteWrapper);
         itemCard.appendChild(itemCardBody);
 
-        const target = document.getElementById("item-collection");
+        const target = document.getElementById("item-collection-container");
         if (target) {
             target.appendChild(itemCard);
         }
@@ -1422,7 +1414,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        browlistModal.open(); // Assumindo que Browlist tem um método show()
+        browlistModal.show(); // Assumindo que Browlist tem um método show()
     }
 
     function updateRobotPositionInMap(data) {
