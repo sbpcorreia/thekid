@@ -58,4 +58,14 @@ class SpotModel extends Model {
         $query = $builder->get();
         return $query->getRow();
     }
+
+    public function getDefaultUnloadDock($terminal) {
+        $builder = $this->db->table($this->table);
+        $builder->select("ponto");
+        $builder->where("terminal", $terminal);
+        $builder->where("tipo", 2);
+        $builder->orderBy("ponto", "ASC");
+        $query = $builder->get();
+        return $query->getRow();
+    }
 }

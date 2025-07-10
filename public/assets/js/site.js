@@ -542,17 +542,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const card = event.target.closest('.card');
         if (card) {
             const podCode = card.getAttribute('data-cart');
-            const unloadLocationEl = document.getElementById("unloadArea");
-            let unloadLocation = "";
-            if(unloadLocationEl) {
-                unloadLocation = unloadLocationEl.value;
+            const terminalCodeEl = document.getElementById("terminal-code");
+            let terminalCode = "";
+            if(terminalCodeEl) {
+                terminalCode = terminalCodeEl.value;
             }           
             
             console.log(`A tentar remover o item com podCode: ${podCode}`);
 
             const formData = new FormData();
             formData.append("podCode", podCode);
-            formData.append("unloadLocation", unloadLocation);
+            formData.append("terminalCode", terminalCode);
 
             try {
                 const response = await fetch(`${sbData.site_url}unloadCart`, {
