@@ -356,8 +356,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "ARTICLE": {
             modalTitle: 'Selecionar Artigo',
             columns: [
-                { field: 'ref', title: 'Referência', sortable: true, searchable: true },
-                { field: 'design', title: 'Designação', sortable: true, searchable: true }
+                { field: 'ref', title: 'Referência', dataField: 'ref', sortable: true, searchable: true },
+                { field: 'design', title: 'Designação', dataField : 'design', sortable: true, searchable: true }
             ],
             requestType: 'ARTICLE'
         },
@@ -365,7 +365,7 @@ document.addEventListener("DOMContentLoaded", () => {
             modalTitle: 'Selecionar Ordem de Corte',
             columns: [
                 { field: 'orinmdoc', title : 'Documento', sortable: false, searchable : false },
-                { field: 'orindoc', title: 'N.º', sortable: true, searchable: true }
+                { field: 'orindoc', title: 'N.º', dataField : "numordem", sortable: true, searchable: true }
             ],
             requestType: 'CUTORDER'
         },
@@ -373,7 +373,7 @@ document.addEventListener("DOMContentLoaded", () => {
             modalTitle: 'Selecionar Ordem de Fabrico',
             columns: [
                 { field: 'orinmdoc', title: 'Documento', sortable: false, searchable: false },
-                { field: 'orindoc', title: 'N.º', sortable : true, searchable : true }
+                { field: 'orindoc', title: 'N.º', dataField : "numof", sortable : true, searchable : true }
             ],
             requestType: 'WORKORDER'
         }
@@ -415,6 +415,18 @@ document.addEventListener("DOMContentLoaded", () => {
             type = "WORKORDER";
             data = inputString;
             console.log("Ordem de fabrico detetada: " + inputString);
+        } else if(inputString.startsWith("OCPU:")) {
+            type = "CUTORDERPU";
+            data = inputString.substring(5);
+            console.log("Ordem de corte PU: " + inputString);    
+        } else if(inputString.startsWith("JA:")) {
+            type = "CUTORDERJA";
+            data = inputString.substring(3);
+            console.log("Ordem de corte JA: " + inputString);   
+        } else if(inputString.startsWith("TEC:")) {
+            type = "CUTORDERTEC";
+            data = inputString.substring(4);
+            console.log("Ordem de corte TECNO: " + inputString);   
         } else {
             console.log(`Tipo de etiqueta desconhecido para: ${inputString}`);
             return; // Não processa se o tipo for desconhecido
@@ -1390,22 +1402,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const browlistModal = new Browlist({
             multipleSelection: true,
-            modalTitle: definition.modalTitle, // Título dinâmico
+            modalTitle: definition.modalTitle,
             dataSource: `${sbData.site_url}tableData`,
             additionalParams: {
                 columnsToShow: definition.columns,
                 requestType: definition.requestType,
             },
+            selectionColumnWidth: '60px', 
+            selectionElementSizeClass: 'browlist-form-check-lg', 
+            rowHeightClass: 'browlist-row-lg', 
+            rowClickSelection: true, 
             httpMethod: 'POST',
-            columns: definition.columns, // Reutiliza as colunas da definição
+            columns: definition.columns,
             pageSize: 10,
             searchable: true,
             sortable: true,
             onSave: (selectedRecords) => {
-                if (selectedRecords && selectedRecords.length > 0) { // Verifica se há registros selecionados
+                if (selectedRecords && selectedRecords.length > 0) { 
                     selectedRecords.forEach(record => {
-                        // 7. Certifique-se de que 'company' ou 'companyValue' é passado corretamente para buildItem
-                        buildItem(type, currentCompanyValue, record); // Usar currentCompanyValue
+                        buildItem(type, currentCompanyValue, record);
                     });
                 } else {
                     console.warn('Nenhum registo selecionado na Browlist.');
@@ -1414,7 +1429,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        browlistModal.show(); // Assumindo que Browlist tem um método show()
+        browlistModal.show();
     }
 
     function updateRobotPositionInMap(data) {

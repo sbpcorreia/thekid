@@ -14,7 +14,14 @@ class WorkOrdersModel extends Model {
         $query = "SELECT COUNT(u_tabof.u_tabofstamp) AS count ";
         $query .= "FROM TECNOLANEMA..u_tabof (NOLOCK) ";
         $query .= "WHERE u_tabof.idto IN (4) ";
-        $query .= "AND u_tabof.numof LIKE '%". $search. "%'";       
+        if(!empty($search)) {
+            if($searchColumn === "global") {
+                $query .= "AND numof LIKE '%". $search. "%'";
+            } else {
+                $query .= "AND $searchColumn LIKE '%". $search. "%'";
+            }
+        }
+               
         $result = $this->db->query($query)->getRow();
         return $result->count;
     }
@@ -22,10 +29,16 @@ class WorkOrdersModel extends Model {
 
     public function getData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "asc") {
         $offset = ($pageSize) * ($page-1);
-        $query = "SELECT u_tabof.u_tabofstamp AS id, u_tabof.u_tabofstamp AS oristamp, u_tabof.numof AS orindoc, 'Ordem de Fabrico' AS orinmdoc ";
+        $query = "SELECT u_tabof.u_tabofstamp AS id, u_tabof.u_tabofstamp [oristamp], u_tabof.numof, 'Ordem de Fabrico' AS orinmdoc ";
         $query .= "FROM TECNOLANEMA..u_tabof (NOLOCK) ";
         $query .= "WHERE u_tabof.idto IN (4) ";
-        $query .= "AND u_tabof.numof LIKE '%". $search. "%'";       
+        if(!empty($search)) {
+            if($searchColumn === "global") {
+                $query .= "AND numof LIKE '%". $search. "%'";
+            } else {
+                $query .= "AND $searchColumn LIKE '%". $search. "%'";
+            }
+        }    
         $query .= "ORDER BY u_tabof.numof ";
         
 

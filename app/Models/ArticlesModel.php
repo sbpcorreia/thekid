@@ -23,7 +23,7 @@ class ArticlesModel extends Model {
                     }
                 }
             } else {
-                $builder->like($searchColumn, $searchColumn);
+                $builder->like($searchColumn, $search);
             }
         }
         $builder->where("inactivo", 0);
@@ -49,7 +49,7 @@ class ArticlesModel extends Model {
                     }
                 }
             } else {
-                $builder->like($searchColumn, $searchColumn);
+                $builder->like($searchColumn, $search, "both");
             }
         }
         $builder->where("inactivo", 0);

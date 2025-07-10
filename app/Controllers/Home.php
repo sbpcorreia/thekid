@@ -140,7 +140,7 @@ class Home extends BaseController
 
         $data = array();
 
-        $columnsToShow = array_column((array) $inputData->columnsToShow, "field");
+        $columnsToShow = array_column((array) $inputData->columnsToShow, "dataField");
         $requestType = $inputData->requestType;
         $pageSize = $inputData->pageSize;
         $page = $inputData->page;
@@ -266,7 +266,35 @@ class Home extends BaseController
                 "type" => "success",
                 "data" => $cutOrder
             ]);
-
+        } else if($type == "CUTORDERPU") {
+            $cutOrderStamp    = str_replace(";", "", trim($barcodeData));
+            $cutOrder = $this->cutOrdersModel->getDataByCode($cutOrderStamp);
+            if(empty($cutOrder)) {
+                return $this->response->setJSON([
+                    "type" => "warning",
+                    "message" => "A ordem de corte não foi encontrada!"
+                ]); 
+            }
+            return $this->response->setJSON([
+                "type" => "success",
+                "data" => $cutOrder
+            ]);
+        } else if($type == "CUTORDERTEC") {
+            $barcodeArray       = explode(";", $barcodeData);
+            $workOrderStamp     = trim($barcodeArray[0]);
+            $workOrderNumber    = trim($barcodeArray[1]);
+            
+            $workOrder = $this->workOrdersModel->getDataByCode($workOrderNumber);
+            if(empty($workOrder)) {
+                return $this->response->setJSON([
+                    "type" => "warning",
+                    "message" => "A ordem de fabrico não foi encontrada!"
+                ]); 
+            }
+            return $this->response->setJSON([
+                "type" => "success",
+                "data" => $workOrder
+            ]);
         } else if($type == "WORKORDER") {
             $workOrderNumber    = trim($barcodeData);
             $workOrder = $this->workOrdersModel->getDataByCode($workOrderNumber);

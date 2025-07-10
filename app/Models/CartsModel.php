@@ -17,15 +17,13 @@ class CartsModel extends Model {
         $builder->selectCount("u_kidcartstamp", "count");
         if(!empty($search)) {
             if($searchColumn == "global") {
-                foreach($columns as $key => $value) {
-                    if($key == 0) {
-                        $builder->like($columns[$key], $search, "both");
-                    } else {
-                        $builder->orLike($columns[$key], $search, "both");
-                    }
+                $builder->groupStart();
+                foreach($columns as $key => $value) {                
+                    $builder->orLike($columns[$key], $search, "both");                    
                 }
+                $builder->groupEnd();
             } else {
-                $builder->like($searchColumn, $searchColumn);
+                $builder->like($searchColumn, $search, "both");
             }
         }
         $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo", "left");
@@ -45,12 +43,12 @@ class CartsModel extends Model {
         if(!empty($search)) {
             if($searchColumn == "global") {
                 $builder->groupStart();
-                foreach($columns as $key => $value) {
+                foreach($columns as $key => $value) {            
                     $builder->orLike($columns[$key], $search, "both");                    
                 }
                 $builder->groupEnd();
             } else {
-                $builder->like($searchColumn, $search);
+                $builder->like($searchColumn, $search, "both");
             }
         }
         if(!empty($sortColumn)) {
