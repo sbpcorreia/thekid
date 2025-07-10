@@ -460,6 +460,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             rackCodeEl.dispatchEvent(new Event("change"));
                         }
                     } else {
+                        console.log(type);
                         buildItem(type, company, data.data);
                     }
                 }           
@@ -1291,6 +1292,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if(type == "CUTORDERTEC") {
             typeInt = 3;
         }
+        console.log(typeInt, type, data.oristamp, data);
 
         const hiddenInputs = [
             { name: "ref", value: data.ref ?? "" },
