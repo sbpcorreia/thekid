@@ -1284,6 +1284,12 @@ document.addEventListener("DOMContentLoaded", () => {
             typeInt = 3;
         } else if(type == "ORDER") {
             typeInt = 4;
+        } else if(type == "CUTORDERPU") {
+            typeInt = 2;
+        } else if(type == "CUTORDERJA") {
+            typeInt = 2;
+        } else if(type == "CUTORDERTEC") {
+            typeInt = 3;
         }
 
         const hiddenInputs = [
@@ -1318,7 +1324,7 @@ document.addEventListener("DOMContentLoaded", () => {
         itemSecondInfoLine.className = "d-flex align-items-center gap-2";
         const itemSecondInfoSpan = document.createElement("span");
 
-        const isOrderType = ['CUTORDER', 'WORKORDER', 'ORDER'].includes(type);
+        const isOrderType = ['CUTORDER', 'WORKORDER', 'ORDER', 'CUTORDERPU', 'CUTORDERJA', 'CUTORDERTEC'].includes(type);
 
         itemFirstInfoLine.classList.add(isOrderType ? "fs-6" : "fs-2");
         itemFirstInfoSpan.innerHTML = isOrderType ? data.orinmdoc : data.ref;
@@ -1337,7 +1343,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const itemDeleteButton = document.createElement("button");
         itemDeleteButton.type = "button";
-        itemDeleteButton.className = "btn btn-danger btn-lg rounded-pill remove-from-cart-button";
+        itemDeleteButton.className = "btn btn-danger btn-lg shadow-sm remove-from-cart-button";
 
         const handleDeleteClick = (e) => {
             e.preventDefault();
