@@ -102,7 +102,7 @@ class HikrobotWebSocketServer implements MessageComponentInterface
             try {
                 $terminalInfo = $this->terminalModel->getTerminalInfo($terminalCode);
                 if (!empty($terminalInfo)) {
-                    $unloadInfo = $this->spotModel->getDefaultLoadingDock($terminalInfo->codigo);
+                    $unloadInfo = $this->spotModel->getDefaultUnloadDock($terminalInfo->codigo);
                     if(!empty($unloadInfo)) {
                         $unloadLocation = $unloadInfo->ponto;
                          // Armazena o locationCode associado a esta conexão
