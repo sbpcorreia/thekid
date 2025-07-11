@@ -968,8 +968,8 @@ document.addEventListener("DOMContentLoaded", () => {
             httpMethod: 'POST',
             columns: detailsBrowlistColumns,
             pageSize: 10,
-            searchable: true,
-            sortable: true,
+            searchable: false,
+            sortable: false,
             buttons: [
                 {
                     hidden : true

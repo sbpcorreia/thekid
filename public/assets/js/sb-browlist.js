@@ -155,7 +155,8 @@ class Browlist {
                         <div class="modal-body">
                             <div class="row mb-3">
                                 <div class="col-md-6 d-flex align-items-center">
-                                    <div class="input-group flex-grow-1 me-2">
+
+                                    <div class="input-group flex-grow-1 me-2${this.searchable ? '' : ' d-none'}">
                                         <select class="form-select" id="${this.modalId}_searchColumnSelect">
                                             ${searchColumnOptions}
                                         </select>
