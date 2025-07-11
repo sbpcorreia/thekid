@@ -1008,122 +1008,129 @@ document.addEventListener("DOMContentLoaded", () => {
             ],
             onCellEvent: async function(event, record, field, columnDef) {
                 const correctPassword = sbData.pwd;
-                if(field === 'accoes' && event.target.classList.contains('priority-task-line-button')) {
-                    const originalButtonContent = event.target.innerHTML;
-                    SbModal.prompt(
-                        'Por favor, introduza a senha de acesso:', // Mensagem
-                        '', // Valor padrão (vazio)
-                        async (inputValue) => { // Callback para quando o botão OK é clicado
-                            if (btoa(inputValue) != correctPassword) {                      
-                                Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
-                                SbModal.closeModal();
-                                return false;                                
-                            } else {
-                                try {
-                                    const taskId    = record.id;
-                                    const taskStamp = record.u_kidtaskstamp;
-                                    const targetPriority = record.priority;
+                if(field === 'accoes') {
+                    const changePriorityBtn = event.target.closest('.priority-task-line-button');
+                    const cancelTaskButton = event.target.closest('.cancel-task-line-button');
+                    const viewTaskLinesButton = event.target.closest('.see-task-lines-button');
 
-                                    // Desativa o botão temporariamente para evitar cliques múltiplos
-                                    event.target.disabled = true; 
-                                    event.target.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> A processar...';
-                                    let formData = new FormData();
-                                    formData.append("taskStamp", taskStamp);
-                                    formData.append("taskId", taskId);
-                                    formData.append("targetPriority", targetPriority);
-                                    const response = await fetch(`${sbData.site_url}changePriority`, {
-                                        method: 'POST',
-                                        body: formData 
-                                    });
-                                    if (!response.ok) {
-                                        const errorData = await response.json().catch(() => ({ message: `Erro HTTP: ${response.status}` }));
+                    // Botão de alteração de prioridade
+                    if(changePriorityBtn) {
+                        const originalButtonContent = event.target.innerHTML;
+                        SbModal.prompt(
+                            'Por favor, introduza a senha de acesso:', // Mensagem
+                            '', // Valor padrão (vazio)
+                            async (inputValue) => { // Callback para quando o botão OK é clicado
+                                if (btoa(inputValue) != correctPassword) {                      
+                                    Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
+                                    SbModal.closeModal();
+                                    return false;                                
+                                } else {
+                                    try {
+                                        const taskId    = record.id;
+                                        const taskStamp = record.u_kidtaskstamp;
+                                        const targetPriority = record.priority;
+
+                                        // Desativa o botão temporariamente para evitar cliques múltiplos
+                                        event.target.disabled = true; 
+                                        event.target.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> A processar...';
+                                        let formData = new FormData();
+                                        formData.append("taskStamp", taskStamp);
+                                        formData.append("taskId", taskId);
+                                        formData.append("targetPriority", targetPriority);
+                                        const response = await fetch(`${sbData.site_url}changePriority`, {
+                                            method: 'POST',
+                                            body: formData 
+                                        });
+                                        if (!response.ok) {
+                                            const errorData = await response.json().catch(() => ({ message: `Erro HTTP: ${response.status}` }));
+                                            event.target.disabled = false;
+                                            event.target.innerHTML = originalButtonContent;
+                                            throw new Error(errorData.message || `Erro do servidor com status ${response.status}`);                                
+                                        }
+                                        const data = await response.json();
+                                        this.loadData();
+                                        showApiResponseToast(data); 
+                                    } catch (error) {
+                                        Toast.create("Erro", "Ocorreu um erro de rede ou inesperado!", TOAST_STATUS.DANGER, 5000);
+                                    } finally {
+                                        // Reativa o botão e restaura o texto, independentemente do sucesso ou falha
                                         event.target.disabled = false;
                                         event.target.innerHTML = originalButtonContent;
-                                        throw new Error(errorData.message || `Erro do servidor com status ${response.status}`);                                
                                     }
-                                    const data = await response.json();
-                                    this.loadData();
-                                    showApiResponseToast(data); 
-                                } catch (error) {
-                                    Toast.create("Erro", "Ocorreu um erro de rede ou inesperado!", TOAST_STATUS.DANGER, 5000);
-                                } finally {
-                                    // Reativa o botão e restaura o texto, independentemente do sucesso ou falha
-                                    event.target.disabled = false;
-                                    event.target.innerHTML = originalButtonContent;
                                 }
+                            },
+                            undefined,
+                            'Acesso Restrito', // Título do prompt,
+                            'password',
+                            {
+                                "data-vk" : "",
                             }
-                        },
-                        undefined,
-                        'Acesso Restrito', // Título do prompt,
-                        'password',
-                        {
-                            "data-vk" : "",
-                        }
-                    ); 
-                }
+                        );
+                    }
+                    // Botão de consulta das linhas da tarefa
+                    if(viewTaskLinesButton) {
+                        const originalButtonContent = event.target.innerHTML;
+                        const taskId = record.id;
+                        const taskStamp = record.u_kidtaskstamp;
+                        detailsBrowlist.options.additionalParams = {
+                            columnsToShow : detailsBrowlistColumns,
+                            requestType : "TASKDETAILS",
+                            taskStamp : taskStamp
+                        };
+                        detailsBrowlist.show();
+                    }
 
-                if(field === 'accoes' && event.target.classList.contains('see-task-lines-button')) {
-                    const originalButtonContent = event.target.innerHTML;
-                    const taskId = record.id;
-                    const taskStamp = record.u_kidtaskstamp;
-                    detailsBrowlist.options.additionalParams = {
-                        columnsToShow : detailsBrowlistColumns,
-                        requestType : "TASKDETAILS",
-                        taskStamp : taskStamp
-                    };
-                    detailsBrowlist.show();
-                }
-
-
-                if(field === 'accoes' && event.target.classList.contains('cancel-task-line-button')) {
-                    const originalButtonContent = event.target.innerHTML;
-                    SbModal.prompt(
-                        'Por favor, introduza a senha de acesso:', // Mensagem
-                        '', // Valor padrão (vazio)
-                        async (inputValue) => { // Callback para quando o botão OK é clicado
-                            if (btoa(inputValue) != correctPassword) {                      
-                                Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
-                                SbModal.closeModal();
-                                return false;                                
-                            } else {
-                                try {
-                                    const taskId = record.id;
-                                    const taskStamp = record.u_kidtaskstamp;
-                                    // Desativa o botão temporariamente para evitar cliques múltiplos
-                                    event.target.disabled = true; 
-                                    event.target.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> A processar...';
-                                    let formData = new FormData();
-                                    formData.append("taskStamp", taskStamp);
-                                    formData.append("taskId", taskId);
-                                    const response = await fetch(`${sbData.site_url}cancelTask`, {
-                                        method: 'POST',
-                                        body: formData 
-                                    });
-                                    if (!response.ok) {
-                                        const errorData = await response.json().catch(() => ({ message: `Erro HTTP: ${response.status}` }));
+                    // Botão de cancelamento da tarefa
+                    if(cancelTaskButton) {
+                        const originalButtonContent = event.target.innerHTML;
+                        SbModal.prompt(
+                            'Por favor, introduza a senha de acesso:', // Mensagem
+                            '', // Valor padrão (vazio)
+                            async (inputValue) => { // Callback para quando o botão OK é clicado
+                                if (btoa(inputValue) != correctPassword) {                      
+                                    Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
+                                    SbModal.closeModal();
+                                    return false;                                
+                                } else {
+                                    try {
+                                        const taskId = record.id;
+                                        const taskStamp = record.u_kidtaskstamp;
+                                        // Desativa o botão temporariamente para evitar cliques múltiplos
+                                        event.target.disabled = true; 
+                                        event.target.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> A processar...';
+                                        let formData = new FormData();
+                                        formData.append("taskStamp", taskStamp);
+                                        formData.append("taskId", taskId);
+                                        const response = await fetch(`${sbData.site_url}cancelTask`, {
+                                            method: 'POST',
+                                            body: formData 
+                                        });
+                                        if (!response.ok) {
+                                            const errorData = await response.json().catch(() => ({ message: `Erro HTTP: ${response.status}` }));
+                                            event.target.disabled = false;
+                                            event.target.innerHTML = originalButtonContent;
+                                            throw new Error(errorData.message || `Erro do servidor com status ${response.status}`);                                
+                                        }
+                                        const data = await response.json();
+                                        this.loadData();
+                                        showApiResponseToast(data); 
+                                    } catch (error) {
+                                        Toast.create("Erro", "Ocorreu um erro de rede ou inesperado!", TOAST_STATUS.DANGER, 5000);
+                                    } finally {
+                                        // Reativa o botão e restaura o texto, independentemente do sucesso ou falha
                                         event.target.disabled = false;
                                         event.target.innerHTML = originalButtonContent;
-                                        throw new Error(errorData.message || `Erro do servidor com status ${response.status}`);                                
                                     }
-                                    const data = await response.json();
-                                    this.loadData();
-                                    showApiResponseToast(data); 
-                                } catch (error) {
-                                    Toast.create("Erro", "Ocorreu um erro de rede ou inesperado!", TOAST_STATUS.DANGER, 5000);
-                                } finally {
-                                    // Reativa o botão e restaura o texto, independentemente do sucesso ou falha
-                                    event.target.disabled = false;
-                                    event.target.innerHTML = originalButtonContent;
                                 }
+                            },
+                            undefined,
+                            'Acesso Restrito', // Título do prompt,
+                            'password',
+                            {
+                                "data-vk" : "",
                             }
-                        },
-                        undefined,
-                        'Acesso Restrito', // Título do prompt,
-                        'password',
-                        {
-                            "data-vk" : "",
-                        }
-                    );                    
+                        );  
+                    }                    
                 }
             }                
         });

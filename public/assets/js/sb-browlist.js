@@ -4,6 +4,10 @@
  * @version 1.4.0 (Pesquisa por coluna adicionada)
  */
 
+// Global counter for managing modal z-index levels for Browlist instances
+let browlistActiveModalCount = 0;
+const BROWLIST_BASE_ZINDEX = 1050; // Standard Bootstrap backdrop z-index
+
 class Browlist {
     constructor(options = {}) {
         this.options = {
@@ -122,12 +126,6 @@ class Browlist {
             .browlist-modal .table-active {
                 background-color: #e2e6ea; /* Cor de fundo para linha selecionada */
             }
-            .browlist-modal.modal {
-                z-index: 1060;
-            }
-            .browlist-modal + .modal-backdrop {
-                z-index: 1059;
-            }
         `;
         document.head.appendChild(style);
     }
@@ -199,6 +197,7 @@ class Browlist {
         
 
         const modalDomElement = document.getElementById(this.modalId);
+
         this.modalElement = new bootstrap.Modal(modalDomElement, {
             keyboard: false
         });
@@ -257,6 +256,8 @@ class Browlist {
 
         // Listener para o evento 'hidden.bs.modal'
         modalDomElement.addEventListener('hidden.bs.modal', () => {
+            browlistActiveModalCount = Math.max(0, browlistActiveModalCount - 1);
+            this._updateAllModalZIndexes(); // Re-evaluate z-indexes for remaining modals
             // Limpa o estado interno da modal
             this.resetState();
             if (typeof this.options.onCancel === 'function') {
@@ -279,10 +280,41 @@ class Browlist {
             // Limpa as referências aos elementos para evitar usos indevidos
             this.elements = {}; 
         });
-
         // Listener para o evento 'shown.bs.modal'
         modalDomElement.addEventListener('shown.bs.modal', () => {
+            browlistActiveModalCount++; // Keep track of Browlist specific modals
+            this._updateAllModalZIndexes(); // Re-evaluate and set z-indexes for all active modals
             this.loadData();
+        });
+    }
+
+    /**
+     * Helper function to manage z-index for all Bootstrap modals, ensuring proper stacking.
+     * @private
+     */
+    _updateAllModalZIndexes() {
+        // Get all currently active Bootstrap modals and backdrops
+        const activeModals = document.querySelectorAll('.modal.show');
+        const activeBackdrops = document.querySelectorAll('.modal-backdrop');
+
+        // Sort modals by their "order" of appearance (roughly based on when they were added)
+        // This is tricky, so we'll rely on the order of the 'show' class which indicates active modals.
+        // The last one in the DOM will typically be the newest.
+
+        let currentModalZIndex = BROWLIST_BASE_ZINDEX + 5; // Start with Bootstrap's default modal Z-index
+        let currentBackdropZIndex = BROWLIST_BASE_ZINDEX; // Start with Bootstrap's default backdrop Z-index
+
+        // For each active modal, assign a higher z-index
+        activeModals.forEach((modalElement, index) => {
+            // Assign z-index to the modal itself
+            modalElement.style.zIndex = currentModalZIndex + (index * 20); // Increment by 20 to give space
+
+            // Find the corresponding backdrop. This is the trickiest part.
+            // Bootstrap appends backdrops directly to body. They typically appear in order.
+            // Assuming the backdrops are appended in the same order as modals become active.
+            if (activeBackdrops[index]) {
+                activeBackdrops[index].style.zIndex = currentBackdropZIndex + (index * 20);
+            }
         });
     }
 
@@ -1115,6 +1147,7 @@ class Browlist {
         this.delegatedEventListeners.set(parentElement, cellEventHandler);
     }
 }
+
 
 // Expõe a classe globalmente se necessário, ou use módulos ES6
 window.Browlist = Browlist;
