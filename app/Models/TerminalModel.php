@@ -10,7 +10,7 @@ class TerminalModel extends Model {
 
     protected $primaryKey = "u_kidtermstamp";
 
-    protected $allowedFields = ["u_kidtermstamp", "codigo", "descricao", "ousrinis", "ousrdata", "ousrhora", "usrinis", "usrdata", "usrhora"];
+    protected $allowedFields = ["u_kidtermstamp", "codigo", "descricao", "empresa", "enviacarro", "ousrinis", "ousrdata", "ousrhora", "usrinis", "usrdata", "usrhora"];
 
     public function getTerminalInfo($terminalCode) {
         $builder = $this->db->table($this->table);

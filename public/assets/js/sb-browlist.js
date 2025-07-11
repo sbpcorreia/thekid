@@ -44,7 +44,7 @@ class Browlist {
                 search: 'Pesquisar...',
                 noRecords: 'Nenhum registo encontrado.',
                 showingEntries: 'A mostrar {start} a {end} de {total} registos',
-                perPage: 'registos por página',
+                perPage: 'Apresentar',
                 loading: 'A carregar...',
                 error: 'Erro ao carregar dados.',
                 selectAll: 'Selecionar todas as linhas visíveis',
@@ -52,7 +52,8 @@ class Browlist {
             },
             
             // Ativar ou desativar clique na linha para seleção (exceto se clicar num elemento interativo)
-            rowClickSelection: true // NEW: Enable/disable row click selection
+            rowClickSelection: true, // NEW: Enable/disable row click selection,
+            buttons: null
         };
 
         Object.assign(this.options, options);
@@ -160,7 +161,7 @@ class Browlist {
                                     
                                 </div>
                                 <div class="col-md-6 text-end">
-                                    <label for="${this.modalId}_pageSizeSelect" class="form-label d-inline-block me-2">${this.options.pageSizeOptions[0]} ${this.options.texts.perPage}</label>
+                                    <label for="${this.modalId}_pageSizeSelect" class="form-label d-inline-block me-2">${this.options.texts.perPage}</label>
                                     <select class="form-select w-auto d-inline-block" id="${this.modalId}_pageSizeSelect">
                                         ${this.options.pageSizeOptions.map(size => `<option value="${size}" ${this.options.pageSize === size ? 'selected' : ''}>${size}</option>`).join('')}
                                     </select>
@@ -182,20 +183,21 @@ class Browlist {
                                 </nav>
                             </div>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${this.options.texts.cancel}</button>
-                            <button type="button" class="btn btn-primary" id="${this.modalId}_saveButton">${this.options.texts.save}</button>
-                        </div>
+                        <div class="modal-footer"></div>
                     </div>
                 </div>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+        
+
         const modalDomElement = document.getElementById(this.modalId);
         this.modalElement = new bootstrap.Modal(modalDomElement, {
             keyboard: false
         });
+
+        this.renderModalButtons();
 
         this.elements = {
             tableHeader: document.getElementById(`${this.modalId}_tableHeader`),
@@ -245,12 +247,7 @@ class Browlist {
             this.loadData();
         });
 
-        this.elements.saveButton.addEventListener('click', () => {
-            if (typeof this.options.onSave === 'function') {
-                this.options.onSave(this.selectedRecords);
-            }
-            this.hide();
-        });
+        
 
         // Listener para o evento 'hidden.bs.modal'
         modalDomElement.addEventListener('hidden.bs.modal', () => {
@@ -284,6 +281,108 @@ class Browlist {
     }
 
     /**
+    * Renderiza os botões no rodapé da modal, permitindo personalização e adição de extras.
+    * @private
+    */
+    renderModalButtons() {
+        const modal = document.getElementById(this.modalId);
+        if(!modal) {
+            console.error("Modal não encontrada");
+        }
+
+       const footer = modal.querySelector('.modal-footer');
+       if (!footer) {
+           console.error("Rodapé da modal não encontrado para renderizar botões.");
+           return;
+       }
+       footer.innerHTML = ''; // Limpa botões existentes
+    
+       // Botões padrão da Browlist
+       const defaultButtons = [{
+           text: 'Selecionar',
+           icon: 'bi-check2',
+           variant: 'success',
+           hidden : false,
+           action: async () => {
+                if (typeof this.options.onSave === 'function') {
+                    this.options.onSave(this.selectedRecords);
+                }
+                this.hide();              
+           }
+       }, {
+           text: 'Cancelar',
+           icon: 'bi-x-lg',
+           variant: 'danger',
+           hidden : false,
+           action: async () => {
+               this.hide();        
+               if (typeof this.options.onCancel === 'function') {
+                   this.options.onCancel();
+               }
+           }
+       }];
+    
+       let finalButtons = [...defaultButtons]; // Começa com uma cópia dos botões padrão
+    
+       // Se customButtons for fornecido, mesclar com os botões padrão
+       if (this.options.buttons && Array.isArray(this.options.buttons)) {
+           // Usamos map para criar um novo array, permitindo estender ou substituir
+           // Se o índice existir nos botões padrão, mesclamos. Caso contrário, é um botão extra.
+           finalButtons = this.options.buttons.map((customBtn, index) => {
+               const defaultBtn = defaultButtons[index];
+               if (defaultBtn) {
+                   return {
+                       ...defaultBtn, // Começa com todas as propriedades do botão padrão
+                       ...customBtn, // Sobrescreve com as propriedades do botão personalizado
+                       // Se a ação não for definida no botão personalizado, mantém a ação padrão
+                       action: customBtn.action === undefined ? defaultBtn.action : customBtn.action
+                   };
+               }
+               // Se não houver um botão padrão correspondente, é um botão extra
+               return customBtn;
+           });
+        
+           // Se o usuário forneceu MENOS botões personalizados do que os padrão,
+           // garantimos que os botões padrão restantes ainda sejam incluídos.
+           if (this.options.buttons.length < defaultButtons.length) {
+               for (let i = this.options.buttons.length; i < defaultButtons.length; i++) {
+                   finalButtons.push(defaultButtons[i]);
+               }
+           }
+       }
+    
+       // Renderizar os botões finais
+       finalButtons.forEach(button => {
+           const btn = document.createElement('button');
+           btn.classList.add('btn');
+           if(button.hidden) {
+                btn.classList.add("d-none");
+           }
+           if (button.variant) {
+               btn.classList.add(`btn-${button.variant}`);
+           }
+           if (button.icon) {
+               btn.innerHTML = `<i class="bi ${button.icon}"></i> ${button.text}`;
+           } else {
+               btn.textContent = button.text;
+           }
+        
+           if (button.dataBsDismiss) {
+               btn.setAttribute('data-bs-dismiss', button.dataBsDismiss);
+           }
+        
+           if (button.action) {
+               btn.addEventListener('click', () => {
+                   Promise.resolve(button.action()).catch(error => {
+                       console.error("Erro na ação do botão da modal Browlist:", error);
+                   });
+               });
+           }
+           footer.appendChild(btn);
+       });
+    }
+
+    /**
      * Resets the internal state of the Browlist.
      * @private
      */
@@ -311,6 +410,7 @@ class Browlist {
     show() {
         // Renderiza a modal e anexa listeners antes de mostrá-la
         this.renderModalAndAddListeners();
+       // this.renderModalButtons();
         this.modalElement.show();
     }
 

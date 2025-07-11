@@ -165,3 +165,49 @@ html, body {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); 
     user-select: none;
 }
+
+.text-bg-indigo {
+    color: var(--bs-white);
+    background-color: var(--bs-indigo);
+}
+
+.text-bg-cyan {
+    color: var(--bs-black);
+    background-color: var(--bs-cyan);
+}
+
+.text-bg-orange {
+    color: var(--bs-white);
+    background-color: var(--bs-orange);
+}
+
+.text-bg-teal {
+    color: var(--bs-white);
+    background-color: var(--bs-teal);
+}
+
+.text-bg-animated-green-teal {
+    animation-name: green-teal-color-animation;
+    animation-duration: 4s;
+    animation-iteration-count: infinite;
+}
+
+/* The animation code */
+@keyframes green-teal-color-animation {
+    0%   {background-color:var(--bs-teal); }
+    25%  {background-color:var(--bs-green);}
+    50%  {background-color:var(--bs-teal);}
+    75%  {background-color:var(--bs-green);}
+    100% {background-color:var(--bs-teal);}
+}
+
+.sb-modal-overlay.modal {
+    z-index: 1060; /* Ou um valor ainda maior se houver outros conflitos, por exemplo, 2000 */
+}
+
+/* Para a backdrop da SbModal */
+/* A backdrop é injetada automaticamente pelo Bootstrap, mas podemos segmentá-la se estiver
+   diretamente associada a uma modal com a nossa classe personalizada */
+.sb-modal-overlay + .modal-backdrop {
+    z-index: 1059; /* Um valor ligeiramente inferior ao da modal, mas superior ao da Browlist */
+}

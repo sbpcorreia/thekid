@@ -30,8 +30,6 @@ class Home extends BaseController
     protected $workOrdersModel;
     protected $webServicesModel;
 
-
-
     public function __construct()
     {
         $this->articlesModel    = new ArticlesModel();
@@ -52,6 +50,7 @@ class Home extends BaseController
         $config                             = new \Config\WebSocket;
         $company                            = "";
         $multiLoad                          = false;
+        $canSendCartsOnly                   = false;
         $terminalCode                       = $this->request->getCookie("terminalCode");        
         $addressToListen                    = $config->addressToListen;
         $portToListen                       = $config->portToListen;
@@ -83,6 +82,7 @@ class Home extends BaseController
             if($terminal != null) {
                 $this->navbarData["terminalDescription"]    = $terminal->descricao;
                 $company                                    = $terminal->empresa;
+                $canSendCartsOnly                           = $terminal->enviacarro;
             }
 
             $loadLocations = $this->spotsModel->getLoadLocations($terminalCode);
@@ -93,9 +93,10 @@ class Home extends BaseController
 
         
         $viewData = array(
-            "terminalCode"  => $terminalCode,
-            "company"       => strtoupper($company),
-            "multiLoad"     => $multiLoad
+            "terminalCode"      => $terminalCode,
+            "company"           => strtoupper($company),
+            "multiLoad"         => $multiLoad,
+            "canSendCartOnly"   => $canSendCartsOnly
         );
         
         echo view("base/header", $this->pageData);
@@ -106,11 +107,12 @@ class Home extends BaseController
         echo view("base/footer", $this->pageData);
     }
 
-    public function loadTaskArea($terminalCode, $company, $multiLoad = false) {
+    public function loadTaskArea($terminalCode, $company, $multiLoad = false, $canSendCartOnly = false) {
         $viewData = array(
-            "terminalCode"  => $terminalCode,
-            "company"       => $company,
-            "multiLoad"     => intval($multiLoad)
+            "terminalCode"      => $terminalCode,
+            "company"           => $company,
+            "multiLoad"         => intval($multiLoad),
+            "canSendCartOnly"   => intval($canSendCartOnly)
         );
         return view("view_cells/new_task", $viewData);
     }
@@ -140,15 +142,15 @@ class Home extends BaseController
 
         $data = array();
 
-        $columnsToShow = array_column((array) $inputData->columnsToShow, "dataField");
-        $requestType = $inputData->requestType;
-        $pageSize = $inputData->pageSize;
-        $page = $inputData->page;
-        $search = $inputData->searchTerm ?? "";
-        $searchColumn = $inputData->searchColumn ?? "";
-        $sortColumn = $inputData->sortColumn ?? "";
-        $sortDirection = $inputData->sortDirection ?? "";
-        $totalRecords = 0;
+        $columnsToShow  = array_column((array) $inputData->columnsToShow, "dataField");
+        $requestType    = $inputData->requestType;
+        $pageSize       = $inputData->pageSize;
+        $page           = $inputData->page;
+        $search         = $inputData->searchTerm ?? "";
+        $searchColumn   = $inputData->searchColumn ?? "";
+        $sortColumn     = $inputData->sortColumn ?? "";
+        $sortDirection  = $inputData->sortDirection ?? "";
+        $totalRecords   = 0;
 
         if($requestType === "CART") {
             $totalRecords = $this->cartsModel->countData($columnsToShow, $search, $searchColumn);
@@ -167,16 +169,16 @@ class Home extends BaseController
             // TO WORK
         } else if($requestType === "TASKHISTORY") {
             $status = array(
-                "99" => "Lançada",
-                "0" => "Exceção ao enviar",
-                "1" => "Criada no robot",
-                "2" => "A executar",
-                "3" => "A enviar",
-                "4" => "A cancelar",
-                "5" => "Cancelada",
-                "6" => "A reenviar",
-                "9" => "Concluída",
-                "10" => "Interrompida"
+                "99" => '<span class="badge text-bg-info">Lançada</span>',
+                "0" => '<span class="badge text-bg-danger">Exceção ao enviar</span>',
+                "1" => '<span class="badge text-bg-info">Criada no robot</span>',
+                "2" => '<span class="badge text-bg-animated-green-teal">A executar</span>',
+                "3" => '<span class="badge text-bg-info">A enviar</span>',
+                "4" => '<span class="badge text-bg-orange">A cancelar</span>',
+                "5" => '<span class="badge text-bg-danger">Cancelada</span>',
+                "6" => '<span class="badge text-bg-cyan">A reenviar</span>',
+                "9" => '<span class="badge text-bg-success">Concluída</span>',
+                "10" => '<span class="badge text-bg-warning">Interrompida</span>'
             );
 
             $priorityNames = array(
@@ -417,6 +419,7 @@ class Home extends BaseController
         $unloadDock         = $request->getPost("unloadDock");
         $priority           = $request->getPost("priority");        
         $taskLines          = $request->getPost("taskd");        
+        
 
         if(!$terminalCode) {
             return $this->response->setJSON([
@@ -425,12 +428,7 @@ class Home extends BaseController
             ]);
         }
 
-        if(empty($taskLines)) {
-            return $this->response->setJSON([
-                "type"      => "warning",
-                "message"   => "Não foi indicado o conteúdo do carrinho!"
-            ]);
-        }
+       
 
         if(!$priority) {
             $priority = 10;
@@ -447,8 +445,13 @@ class Home extends BaseController
             $loadDock   = $defaultDock->ponto;
         }
 
+        $sendCartOnly = false;
+        if(empty($sendCartOnly)) {
+            $sendCartOnly = true;
+        }
+
         $taskStamp = newStamp("TSK");
-        $result = $this->taskModel->addNewTask($taskStamp, $cartCode, $loadDock, $unloadDock, intval($priority), "TSK");
+        $result = $this->taskModel->addNewTask($taskStamp, $cartCode, $loadDock, $unloadDock, intval($priority), "TSK", $sendCartOnly);
         if(!$result) {
             return $this->response->setJSON([
                 "type" => "error",
@@ -456,18 +459,21 @@ class Home extends BaseController
             ]);
         }
 
-        foreach($taskLines as $key => $value) {
-            $taskLines[$key]["u_kidtaskdstamp"] = newStamp("TSD");
-            $taskLines[$key]["u_kidtaskstamp"] = $taskStamp;          
-        }
+        if(!empty($taskLines)) {
+             foreach($taskLines as $key => $value) {
+                $taskLines[$key]["u_kidtaskdstamp"] = newStamp("TSD");
+                $taskLines[$key]["u_kidtaskstamp"] = $taskStamp;          
+            }
 
-        $result = $this->taskLinesModel->insertBatch($taskLines);
-        if(!$result) {
-            return $this->response->setJSON([
-                "type" => "error",
-                "message" => "Ocorreu um erro ao adicionar as linhas da tarefa!"
-            ]);
-        }        
+            $result = $this->taskLinesModel->insertBatch($taskLines);
+            if(!$result) {
+                return $this->response->setJSON([
+                    "type" => "error",
+                    "message" => "Ocorreu um erro ao adicionar as linhas da tarefa!"
+                ]);
+            }  
+        }
+             
         return $this->response->setJSON([
             "type" => "success",
             "message" => "Tarefa enviada!"
@@ -501,5 +507,84 @@ class Home extends BaseController
         ]);
     }
 
+    public function postCancelTask() : ResponseInterface{
+        $request = service('request');
 
+        $taskStamp  = $request->getPost("taskStamp");
+        $taskId     = $request->getPost("taskId");
+
+        if(!$taskStamp) {
+            return $this->response->setJSON([
+                "type" => "error",
+                "message" => "Tarefa não indicada!"
+            ]);
+        }
+
+        $requestData = array(
+            "reqCode" => newStamp("CTK"),
+            "forceCancel" => 0,
+            "taskCode" => $taskStamp
+        );
+
+        $response = $this->webServicesModel->callWebservice(HIKROBOT_CANCEL_TASK, $requestData);
+        if(isset($response->code) && $response->code === "0") {
+            $result = $this->taskModel->updateTaskStatus($taskStamp, 5);
+            if(!$result) {
+                return $this->response->setJSON([
+                    "type" => "error",
+                    "message" => "Ocorreu um erro ao atualizar o estado da tarefa #$taskId!"
+                ]);
+            } 
+            return $this->response->setJSON([
+                "type" => "success",
+                "message" => "Tarefa #$taskId cancelada com sucesso!"
+            ]);
+        } 
+        return $this->response->setJSON([
+            "type" => "error",
+            "message" => "Ocorreu um erro ao cancelar a tarefa #$taskId. Detalhes: " . $response->message
+        ]);
+    }
+
+    public function postChangePriority() : ResponseInterface{
+        $request            = service('request');
+
+        $taskStamp         = $request->getPost("taskStamp");
+        $taskId            = $request->getPost("taskId");
+        $targetPriority     = $request->getPost("targetPriority");
+
+        if(!$taskStamp) {
+            return $this->response->setJSON([
+                "type" => "error",
+                "message" => "Tarefa não indicada!"
+            ]);
+        }
+
+        $requestData = array(
+            "reqCode"   => newStamp("STP"),
+            "taskCode"  => $taskStamp,
+            "priority"  => $targetPriority            
+        );
+
+        $response = $this->webServicesModel->callWebservice(HIKROBOT_SET_TASK_PRIORITY, $requestData);
+        if(isset($response->code) && $response->code === "0") {
+            $result = $this->taskModel->updateTaskStatus($taskStamp, -1, 0, 0, "", "", $targetPriority);
+            if(!$result) {
+                return $this->response->setJSON([
+                    "type" => "error",
+                    "message" => "Ocorreu um erro ao atualizar a prioridade da tarefa #$taskId!"
+                ]);
+            } 
+
+            $text = ($targetPriority == 10 ? "normal" : "prioritária");
+            return $this->response->setJSON([
+                "type" => "success",
+                "message" => "Tarefa #$taskId alterada para $text com sucesso!"
+            ]);
+        } 
+        return $this->response->setJSON([
+            "type" => "error",
+            "message" => "Ocorreu um erro ao alterar a prioridade da tarefa #$taskId. Detalhes: " . $response->message
+        ]);
+    }
 }

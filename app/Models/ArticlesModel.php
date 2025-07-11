@@ -28,6 +28,8 @@ class ArticlesModel extends Model {
         }
         $builder->where("inactivo", 0);
         $builder->where("stns", 0);
+        $builder->whereNotIn("familia", array("Peças"));
+        $builder->whereIn("usr4", array("PolyLanema"));
         $builder->notLike("ref", "POLY", "right");
         $query = $builder->get();
         $res = $query->getRow();
@@ -54,6 +56,8 @@ class ArticlesModel extends Model {
         }
         $builder->where("inactivo", 0);
         $builder->where("stns", 0);
+        $builder->whereNotIn("familia", array("Peças"));
+        $builder->whereIn("usr4", array("PolyLanema"));
         $builder->notLike("ref", "POLY", "right");
         if(!empty($sortColumn)) {
             $builder->orderBy($sortColumn, $sortDirection);

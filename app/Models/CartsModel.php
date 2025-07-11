@@ -14,7 +14,9 @@ class CartsModel extends Model {
 
     public function countData($columns, $search = "", $searchColumn = "") : int {
         $builder = $this->db->table($this->table);
-        $builder->selectCount("u_kidcartstamp", "count");
+        $builder->selectCount("u_kidcartstamp", "count");        
+        $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo AND u_kidtask.estado NOT IN (5,9)", "left");
+        $builder->where("u_kidtask.u_kidtaskstamp IS NULL", "", false);
         if(!empty($search)) {
             if($searchColumn == "global") {
                 $builder->groupStart();
@@ -26,11 +28,6 @@ class CartsModel extends Model {
                 $builder->like($searchColumn, $search, "both");
             }
         }
-        $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo", "left");
-        $builder->groupStart();
-        $builder->whereIn("u_kidtask.estado", array(9,5));
-        $builder->orWhere("u_kidtask.u_kidtaskstamp IS NULL", "", false);
-        $builder->groupEnd();
         $query = $builder->get();
         $res = $query->getRow();
         return $res->count;
@@ -39,7 +36,8 @@ class CartsModel extends Model {
     public function getData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "asc") {
         $builder = $this->db->table($this->table);
         $builder->select("u_kidcartstamp AS id, codigo, descricao", false);
-
+        $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo AND u_kidtask.estado NOT IN (5,9)", "left");
+        $builder->where("u_kidtask.u_kidtaskstamp IS NULL", "", false);
         if(!empty($search)) {
             if($searchColumn == "global") {
                 $builder->groupStart();
@@ -54,11 +52,6 @@ class CartsModel extends Model {
         if(!empty($sortColumn)) {
             $builder->orderBy($sortColumn, $sortDirection);
         }    
-        $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo", "left");
-        $builder->groupStart();
-        $builder->whereIn("u_kidtask.estado", array(9,5));
-        $builder->orWhere("u_kidtask.u_kidtaskstamp IS NULL", "", false);
-        $builder->groupEnd();
         $query = $builder->get($pageSize, ($pageSize) * ($page-1));
         return $query->getResult();        
     }
@@ -66,12 +59,9 @@ class CartsModel extends Model {
     public function getDataByCode($cartCode) {
         $builder = $this->db->table($this->table);
         $builder->select("u_kidcartstamp AS id, codigo, descricao", false);
-        $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo", "left");
+        $builder->join("u_kidtask", "u_kidtask.carrinho=u_kidcart.codigo AND u_kidtask.estado NOT IN (5,9)", "left");
+        $builder->where("u_kidtask.u_kidtaskstamp IS NULL", "", false);
         $builder->where("u_kidcart.codigo", $cartCode);
-        $builder->groupStart();
-        $builder->whereIn("u_kidtask.estado", array(9,5));
-        $builder->orWhere("u_kidtask.u_kidtaskstamp IS NULL", "", false);
-        $builder->groupEnd();
         $query = $builder->get();
         return $query->getRow();
     }

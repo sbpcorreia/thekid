@@ -16,7 +16,7 @@ class SBModalManager {
                 this.removeModalFromDOM();
 
                 this.modalElement = document.createElement('div');
-                this.modalElement.classList.add('modal', 'fade');
+                this.modalElement.classList.add('modal', 'fade', 'sb-modal-overlay');
                 this.modalElement.setAttribute('tabindex', '-1');
                 this.modalElement.setAttribute('aria-labelledby', 'dynamicModalLabel');
                 this.modalElement.setAttribute('aria-hidden', 'true');
@@ -114,16 +114,16 @@ class SBModalManager {
         return this.currentPromise;
     }
 
-    alert(message, onOk, title = 'Alerta') {
+    alert(message, onOk, title = 'Alerta', okText = 'OK', okIcon = 'bi bi-check2', okVariant = 'primary') {
         const contentHtml = `<p>${message}</p>`;
         this._openModal({
             title: title,
             content: contentHtml,
             showDefaultCloseButton: false,
             buttons: [{
-                text: 'OK',
-                icon: 'bi-check-circle',
-                variant: 'primary',
+                text: okText,
+                icon: okIcon,
+                variant: okVariant,
                 action: async () => {
                     await this.closeModal();
                     if (onOk) onOk();
@@ -132,24 +132,24 @@ class SBModalManager {
         });
     }
 
-    confirm(message, onConfirm, onCancel, title = 'Confirmação') {
+    confirm(message, onConfirm, onCancel, title = 'Confirmação', okText = 'OK', okIcon = 'bi bi-check2', okVariant = 'success', cancelText = 'Cancelar', cancelIcon = 'bi bi-x-lg', cancelVariant = 'danger') {
         const contentHtml = `<p>${message}</p>`;
         this._openModal({
             title: title,
             content: contentHtml,
             showDefaultCloseButton: false,
             buttons: [{
-                text: 'OK',
-                icon: 'bi-check-circle',
-                variant: 'primary',
+                text: okText,
+                icon: okIcon,
+                variant: okVariant,
                 action: async () => {
                     await this.closeModal();
                     if (onConfirm) onConfirm();
                 }
             }, {
-                text: 'Cancelar',
-                icon: 'bi-x-lg',
-                variant: 'secondary',
+                text: cancelText,
+                icon: cancelIcon,
+                variant: cancelVariant,
                 action: async () => {
                     await this.closeModal();
                     if (onCancel) onCancel();
@@ -158,7 +158,7 @@ class SBModalManager {
         });
     }
 
-    prompt(message, defaultValue = '', onOk, onCancel, title = 'Input Required', inputType = 'text', attributes = {}) {
+    prompt(message, defaultValue = '', onOk, onCancel, title = 'Input Required', inputType = 'text', attributes = {}, okText = 'OK', okIcon = 'bi bi-check2', okVariant = 'success', cancelText = 'Cancelar', cancelIcon = 'bi bi-x-lg', cancelVariant = 'danger') {
         const inputId = `promptInput-${Date.now()}`;
         const attributesString = Object.entries(attributes)
             .map(([key, value]) => `${key}='${value}'`)
@@ -173,18 +173,18 @@ class SBModalManager {
             content: contentHtml,
             showDefaultCloseButton: false,
             buttons: [{
-                text: 'OK',
-                icon: 'bi-check-circle',
-                variant: 'primary',
+                text: okText,
+                icon: okIcon,
+                variant: okVariant,
                 action: async () => {
                     const inputValue = document.getElementById(inputId).value;
                     await this.closeModal();
                     if (onOk) onOk(inputValue);
                 }
             }, {
-                text: 'Cancelar',
-                icon: 'bi-x-lg',
-                variant: 'secondary',
+                text: cancelText,
+                icon: cancelText,
+                variant: cancelVariant,
                 action: async () => {
                     await this.closeModal();
                     if (onCancel) onCancel();
@@ -197,7 +197,7 @@ class SBModalManager {
         this._openModal(options);
     }
 
-    async form(title, fieldsConfig, onSubmit, onCancel, options = {}) {
+    async form(title, fieldsConfig, onSubmit, onCancel, options = {}, customButtons = null) {
         let contentHtml = '';
         const fieldData = [];
 
@@ -220,6 +220,23 @@ class SBModalManager {
                 fieldHtml += `<select id="${id}" class="form-select ${sizeClass}"></select>`;
             } else if (field.type === 'textarea') {
                 fieldHtml += `<textarea id="${id}" class="form-control ${sizeClass}" rows="${field.rows || 3}">${field.defaultValue || ''}</textarea>`;
+            } else if(field.type === 'checkbox') {
+                fieldHtml += `
+                <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="${id}" name="${id}" ${field.defaultValue ? 'checked' : ''}>
+                        <label class="form-check-label" for="${id}">${field.label || ''}</label>
+                    </div>
+                `;
+            } else if(field.type === 'radio') {
+                fieldHtml += `<div id="${field.id}">`;
+                field.options.forEach(option => {
+                    fieldHtml += `
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="${id}" id="${id}-${option.value}" value="${option.value}" ${field.defaultValue === option.value ? 'checked' : ''} ${field.required ? 'required' : ''}>
+                            <label class="form-check-label" for="${id}-${option.value}">${option.label}</label>
+                        </div>`;
+                });
+                fieldHtml += `</div>`;
             } else {
                 const attributesString = field.attributes ? Object.entries(field.attributes).map(([k, v]) => `${k}='${v}'`).join(' ') : '';
                 fieldHtml += `<input type="${field.type || 'text'}" id="${id}" class="form-control ${sizeClass}" value="${field.defaultValue || ''}" ${attributesString}>`;
@@ -268,11 +285,29 @@ class SBModalManager {
             }
         ];
 
+        let finalButtons = [...buttons]; // Começa com uma cópia dos botões padrão
+
+        // Se customButtons for fornecido, mesclar com os botões padrão
+        if (customButtons && Array.isArray(customButtons)) {
+            customButtons.forEach((customBtn, index) => {
+                if (finalButtons[index]) {
+                    finalButtons[index] = {
+                        ...finalButtons[index], // Mantém as propriedades padrão
+                        ...customBtn           // Sobrescreve com as propriedades personalizadas
+                    };
+                    // Se a ação não for definida no botão personalizado, mantém a ação padrão
+                    if (customBtn.action === undefined) {
+                        finalButtons[index].action = buttons[index].action;
+                    }
+                }
+            });
+        }       
+
         await this._openModal({
             title: title,
             content: contentHtml,
             showDefaultCloseButton: false,
-            buttons: buttons,
+            buttons: finalButtons,
             modalSize: options.modalSize
         });
 

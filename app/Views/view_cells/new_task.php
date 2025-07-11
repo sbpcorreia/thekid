@@ -8,6 +8,7 @@
             <input type="hidden" name="terminalCode" id="terminal-code" value="<?= $terminalCode ?? ""; ?>" />
             <input type="hidden" name="company" id="company" value="<?= $company ?? ""; ?>" />
             <input type="hidden" name="multiLoadDock" id="multi-load-dock" value="<?= $multiLoad; ?>" />
+            <input type="hidden" name="canSendCartOnly" id="can-send-cart-only" value="<?= $canSendCartOnly; ?>" />
             
             <div id="cart-unloading-container" class="mb-2"></div>
 

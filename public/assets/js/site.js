@@ -397,6 +397,14 @@ document.addEventListener("DOMContentLoaded", () => {
             company = companyEl.value;
         }
 
+        const container = document.getElementById('cart-unloading-container');
+        if(container) {
+            if(container.childElementCount > 0) {
+                Toast.create("Atenção", "Existem carrinhos a descarregar!", TOAST_STATUS.WARNING, 5000);
+                return;
+            }
+        }
+
         if(company === "") return;
         
         if (inputString.startsWith("R") && inputString.length === 6) {
@@ -470,7 +478,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }        
     }
 
-    // Função principal otimizada
+    /**
+     * Gera a visualização do estado dos robos
+     * @param {*} data Os dados obtidos pelo websocket
+     * @returns 
+     */
     function generateRobotItem(data) {
         if(data.type != 'robot_data_update') return;
 
@@ -483,7 +495,11 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Função global ou acessível para lidar com a adição/atualização de cartões
+    /**
+     * Apresenta a área de descarga de carrinhos recebidos no cais de descarga
+     * @param {*} data Os dados recebidos pelo websocket
+     * @returns 
+     */
     function updateCartDisplay(data) {
         if(data.type != "rack_info_at_pos_code") return;        
 
@@ -525,6 +541,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Força o reflow para garantir que a transição seja aplicada
                 void card.offsetWidth; 
                 card.classList.add('show'); // Adiciona 'show' para iniciar o fade-in
+
+                // inicializa a toolitp
+                initializeTooltip(card.querySelector('.unload-card-button'));
 
                 // Adiciona o event listener imediatamente após criar o botão
                 card.querySelector('.unload-cart-button').onclick = async (event) => {
@@ -579,100 +598,195 @@ document.addEventListener("DOMContentLoaded", () => {
                 
             } catch (error) {
                 console.error('Erro ao fazer a requisição para remover o item:', error);
-            }
-            
+            }            
         }
     }
 
-    // NOVA FUNÇÃO: Gerencia o estado da mensagem e controlos
+    /**
+     * Gere o estado do formulário após receção de um carrinho
+     * @returns void
+     */
     function updateCartContainerState() {
         const container = document.getElementById('cart-unloading-container');
         const changePodButton = document.getElementById("change-cart-button");
         const addButton = document.getElementById("add-item-button");
         const sendButton = document.getElementById("send-to-robot-button");
+        const sendUrgentButton = document.getElementById("send-priority-to-robot-button");
+        const cancelButton = document.getElementById("cancel-task-button");
+        const deleteItemButton = document.querySelectorAll(".remove-from-cart-button");
+
         if (!container || !changePodButton || !addButton || !sendButton) {
             console.error('Um ou mais elementos de UI não foram encontrados.');
             return;
         }
-        const hasCarts = container.children.length > 0;
+        const hasCarts = container.childElementCount > 0;
         if (hasCarts) {
             changePodButton.setAttribute("disabled", "disabled");
             addButton.setAttribute('disabled', 'disabled');
-            sendButton.setAttribute('disabled', 'disabled');  
-            
-           // 
+            sendButton.setAttribute('disabled', 'disabled');
+            sendUrgentButton.setAttribute("disabled", "disabled");
+            cancelButton.setAttribute("disabled", "disabled");
+            if(deleteItemButton) {
+                deleteItemButton.forEach(element => {
+                    element.setAttribute("disabled", "disabled");
+                }); 
+            }
         } else {
             changePodButton.removeAttribute("disabled");
-            addButton.removeAttribute('disabled');
-            sendButton.removeAttribute('disabled');
+            updateMainFormUI();
+            if(deleteItemButton) {
+                deleteItemButton.forEach(element => {
+                    element.removeAttribute("disabled");
+                });
+            }            
         }
     }
 
+    /**
+     * Inicializa o tooltip no elemento indicado
+     * @param {*} element Elemento HTML a ativar o tooltip 
+     */
+    function initializeTooltip(element) {
+        if (element && element.hasAttribute('data-bs-toggle') && element.getAttribute('data-bs-toggle') === 'tooltip') {
+            new bootstrap.Tooltip(element);
+        }
+    }
 
     
-    // Função utilitária para limpeza (opcional)
+    /**
+     * Função usada para limpar a cache do controlo de apresentação dos robos
+     */
     function clearRobotCache() {
         RobotUI.cache.robotElements.clear();
     }
 
+    /**
+     * Adiciona os eventos aos diferentes elementos da página
+     * @returns Void
+     */
     function attachEvents() {
-        const browlistColumns = [
+        const cartBrowlistColumns = [
             {
                 field: 'codigo',
                 title: 'Código',
+                dataField : 'codigo',
                 sortable: true,
                 searchable: true
             },
             {
                 field: 'descricao',
                 title: 'Descrição',
+                dataField : 'descricao',
                 sortable: true,
                 searchable: true
             }
         ];
 
-        const historyColumns = [
+        const historyBrowlistColumns = [
             {
                 field : 'id',
                 title : '# tarefa',
+                dataField : 'id',
                 sortable : true,
                 searchable : true
             },
             {
                 field : 'carrinho',
                 title : 'Carrinho',
+                dataField: 'carrinho',
                 sortable : true,
                 searchable : true
             },
             {
                 field : 'data',
                 title : 'Data',
+                dataField : 'data',
                 sortable : true,
                 searchable : true
             },
             {
                 field : 'hora',
                 title : 'Hora',
+                dataField : 'hora',
                 sortable : true,
                 searchable : true
             },
             {
                 field : 'estado',
                 title : 'Estado',
+                dataField: 'estado',
                 sortable : true,
                 searchable : true
             },
             {
                 field: 'ptoori',
                 title : 'Origem',
+                dataField : 'ptoori',
                 sortable :true,
                 searchable : true
             },
             {
                 field : 'ptodes',
                 title : 'Destino',
+                dataField : 'ptodes',
                 sortable : true,
                 searchable : true
+            },
+            {
+                field : 'prioridade',
+                title : 'Prioridade',
+                dataField : 'prioridade',
+                sortable : true,
+                searchable : false
+            },
+            {
+                field : 'enviocarro',
+                title: 'Tipo',
+                dataField : 'enviocarro',
+                render: function(row) {
+                    let result = "";
+                    if(row.enviocarro === 1) {                        
+                        result = '<span data-bs-toggle="tooltip" title="Carrinho vazio"><i class="bi bi-cart"></i></span>';
+                    } else {
+                        result = '<span data-bs-toggle="tooltip" title="Carro com material"><i class="bi bi-cart-fill"></i></span>';
+                    }
+                    return result;
+                }
+            },
+            {
+                field : 'accoes',
+                title : 'Acções',
+                render: function(row) {
+                    let result = "";
+                    let btnText = "Dar prioridade";
+                    let targetPriority = "1";  
+                    let statusNum = parseInt(row.estadonum);
+                    
+                    if([1,2,3,4,6,0].includes(statusNum)) {
+                        result += `<div class="btn-group d-flex justify-content-center" role="group" aria-label="Ações">`;
+                        result += `
+                        <button type="button" class="btn btn-warning btn-sm cancel-task-line-button" data-id="${row.id}" data-task="${row.u_kidtaskstamp}">
+                            <i class="bi bi-trash-fill"></i> 
+                            Cancelar tarefa
+                        </button>`;
+                        if(statusNum != 2) {
+                            if(row.prioritynum == 1) {
+                                btnText = "Baixar prioridade";
+                                targetPriority = "10";  
+                            } 
+                            result += `
+                            <button type="button" class="btn btn-info btn-sm priority-task-line-button" data-id="${row.id}" data-task="${row.u_kidtaskstamp}" data-priority="${row.prioritynum}">
+                                <i class="bi bi-exclamation-diamond-fill"></i> 
+                                ${btnText}
+                            </button>
+                            `;
+                        }
+                        
+                        result += `</div>`;
+                    }
+                    return result;
+                    
+                }
             }
         ];
 
@@ -686,6 +800,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const rackCodeSpan = document.getElementById('cart-code-id');
         const companyEl = document.getElementById('company');
         const newTaskFrm = document.getElementById("new-task-form");
+        const canSendCartOnlyEl = document.getElementById("can-send-cart-only");
         const itemArea = document.getElementById("item-collection-container");
         const mapButton = document.getElementById("robot-map");
         const showHistoryButton = document.getElementById("show-task-history");
@@ -704,19 +819,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         openOffcanvasTrigger.addEventListener('click', function() {
-            // Usa o método prompt da sua SbModal para pedir a senha
             SbModal.prompt(
-                'Por favor, introduza a senha de acesso:', // Mensagem
-                '', // Valor padrão (vazio)
-                (inputValue) => { // Callback para quando o botão OK é clicado
+                'Por favor, introduza a senha de acesso:',
+                '',
+                (inputValue) => { 
                     if (btoa(inputValue) === correctPassword) {
-                        offcanvasRestrictedArea.show(); // Abre a offcanvas
+                        offcanvasRestrictedArea.show();
                     } else {
                         Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
                     }
                 },
                 undefined,
-                'Acesso Restrito', // Título do prompt,
+                'Acesso Restrito',
                 'password',
                 {
                     "data-vk" : "",
@@ -776,13 +890,13 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        const browlistModal = new Browlist({
+        const cartBrowlist = new Browlist({
             multipleSelection: false,
             modalTitle: 'Selecionar carrinho',
             modalSize: 'lg',
             dataSource: `${sbData.site_url}tableData`, 
             additionalParams: {
-                columnsToShow: browlistColumns,
+                columnsToShow: cartBrowlistColumns,
                 requestType: 'CART',
             },
             selectionColumnWidth: '60px',
@@ -790,7 +904,7 @@ document.addEventListener("DOMContentLoaded", () => {
             rowHeightClass: 'browlist-row-lg',
             rowClickSelection: true, 
             httpMethod: 'POST',
-            columns: browlistColumns, 
+            columns: cartBrowlistColumns, 
             pageSize: 10,
             searchable: true,
             sortable: true,
@@ -807,61 +921,167 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         const historyBrowlist = new Browlist({
-                hideSelectionColumn : true,
-                modalTitle : 'Histórico de tarefas',
-                dataSource : `${sbData.site_url}tableData`,
-                additionalParams : {
-                    columnsToShow : historyColumns,
-                    requestType : "TASKHISTORY"
+            hideSelectionColumn : true,
+            modalTitle : 'Histórico de tarefas',
+            dataSource : `${sbData.site_url}tableData`,
+            additionalParams : {
+                columnsToShow : historyBrowlistColumns,
+                requestType : "TASKHISTORY"
+            },            
+            rowHeightClass: 'browlist-row-lg',    
+            httpMethod: 'POST',
+            columns: historyBrowlistColumns,
+            pageSize: 10,
+            searchable: true,
+            sortable: true,
+            buttons: [
+                {
+                    hidden : true
                 },
-                httpMethod: 'POST',
-                columns: historyColumns, 
-                pageSize: 10,
-                searchable: true,
-                sortable: true,
+                {
+                    variant: 'secondary',
+                    text : 'Fechar'
+                }
+                
+            ],
+            onCellEvent: async function(event, record, field, columnDef) {
+                const correctPassword = sbData.pwd;
+                if(field === 'accoes' && event.target.classList.contains('priority-task-line-button')) {
+                    const originalButtonContent = event.target.innerHTML;
+                    SbModal.prompt(
+                        'Por favor, introduza a senha de acesso:', // Mensagem
+                        '', // Valor padrão (vazio)
+                        async (inputValue) => { // Callback para quando o botão OK é clicado
+                            if (btoa(inputValue) != correctPassword) {                      
+                                Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
+                                SbModal.closeModal();
+                                return false;                                
+                            } else {
+                                try {
+                                    const taskId    = record.id;
+                                    const taskStamp = record.u_kidtaskstamp;
+                                    const targetPriority = record.priority;
+
+                                    // Desativa o botão temporariamente para evitar cliques múltiplos
+                                    event.target.disabled = true; 
+                                    event.target.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> A processar...';
+                                    let formData = new FormData();
+                                    formData.append("taskStamp", taskStamp);
+                                    formData.append("taskId", taskId);
+                                    formData.append("targetPriority", targetPriority);
+                                    const response = await fetch(`${sbData.site_url}changePriority`, {
+                                        method: 'POST',
+                                        body: formData 
+                                    });
+                                    if (!response.ok) {
+                                        const errorData = await response.json().catch(() => ({ message: `Erro HTTP: ${response.status}` }));
+                                        event.target.disabled = false;
+                                        event.target.innerHTML = originalButtonContent;
+                                        throw new Error(errorData.message || `Erro do servidor com status ${response.status}`);                                
+                                    }
+                                    const data = await response.json();
+                                    this.loadData();
+                                    showApiResponseToast(data); 
+                                } catch (error) {
+                                    Toast.create("Erro", "Ocorreu um erro de rede ou inesperado!", TOAST_STATUS.DANGER, 5000);
+                                } finally {
+                                    // Reativa o botão e restaura o texto, independentemente do sucesso ou falha
+                                    event.target.disabled = false;
+                                    event.target.innerHTML = originalButtonContent;
+                                }
+                            }
+                        },
+                        undefined,
+                        'Acesso Restrito', // Título do prompt,
+                        'password',
+                        {
+                            "data-vk" : "",
+                        }
+                    ); 
+                }
+
+
+                if(field === 'accoes' && event.target.classList.contains('cancel-task-line-button')) {
+                    const originalButtonContent = event.target.innerHTML;
+                    SbModal.prompt(
+                        'Por favor, introduza a senha de acesso:', // Mensagem
+                        '', // Valor padrão (vazio)
+                        async (inputValue) => { // Callback para quando o botão OK é clicado
+                            if (btoa(inputValue) != correctPassword) {                      
+                                Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
+                                SbModal.closeModal();
+                                return false;                                
+                            } else {
+                                try {
+                                    const taskId = record.id;
+                                    const taskStamp = record.u_kidtaskstamp;
+                                    // Desativa o botão temporariamente para evitar cliques múltiplos
+                                    event.target.disabled = true; 
+                                    event.target.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> A processar...';
+                                    let formData = new FormData();
+                                    formData.append("taskStamp", taskStamp);
+                                    formData.append("taskId", taskId);
+                                    const response = await fetch(`${sbData.site_url}cancelTask`, {
+                                        method: 'POST',
+                                        body: formData 
+                                    });
+                                    if (!response.ok) {
+                                        const errorData = await response.json().catch(() => ({ message: `Erro HTTP: ${response.status}` }));
+                                        event.target.disabled = false;
+                                        event.target.innerHTML = originalButtonContent;
+                                        throw new Error(errorData.message || `Erro do servidor com status ${response.status}`);                                
+                                    }
+                                    const data = await response.json();
+                                    this.loadData();
+                                    showApiResponseToast(data); 
+                                } catch (error) {
+                                    Toast.create("Erro", "Ocorreu um erro de rede ou inesperado!", TOAST_STATUS.DANGER, 5000);
+                                } finally {
+                                    // Reativa o botão e restaura o texto, independentemente do sucesso ou falha
+                                    event.target.disabled = false;
+                                    event.target.innerHTML = originalButtonContent;
+                                }
+                            }
+                        },
+                        undefined,
+                        'Acesso Restrito', // Título do prompt,
+                        'password',
+                        {
+                            "data-vk" : "",
+                        }
+                    );                    
+                }
+            }                
         });
 
         if(showHistoryButton) {
-            showHistoryButton.addEventListener("click", async (e) => {
-                
+            showHistoryButton.addEventListener("click", async (e) => {                
                 historyBrowlist.show();
             });
         }
 
         if(configForm) {
-            configForm.addEventListener("submit", async (e) => { // Use 'async' para await se for o caso
+            configForm.addEventListener("submit", async (e) => { 
                 e.preventDefault();
                 e.stopPropagation();
-
                 const form = e.target;
                 const formData = new FormData(form);
                 const formDataJson = Object.fromEntries(formData.entries());
-
                 if (!validateConfigForm(formDataJson)) {
                     return;
                 }
-
                 try {
                     const response = await fetch(`${sbData.site_url}setTerminal`, {
                         method: 'POST',
                         body: formData 
                     });
-
-
                     if (!response.ok) {
                         const errorData = await response.json().catch(() => ({ message: `Erro HTTP: ${response.status}` }));
                         throw new Error(errorData.message || `Erro do servidor com status ${response.status}`);
                     }
-
                     const data = await response.json();
-
                     showApiResponseToast(data);
-                    
-                    // --- A MAGIA ACONTECE AQUI ---
-                    // Só depois de o JSON ser processado, a página recarrega
-                    window.location.reload();                
-
-                    
+                    window.location.reload();  
                 } catch (error) {
                     Toast.create("Erro", "Ocorreu um erro ao submeter o formulário! Tente novamente!", TOAST_STATUS.DANGER, 5000);
                     console.error("Erro ao submeter os dados de configuração:", error);
@@ -872,7 +1092,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if(rackCodeEl) {
             rackCodeEl.addEventListener("change", (e) => {
                 const hasValue = (e.target.value != '');
-
                 if(hasValue) {
                     rackCodeSpan.innerText = e.target.value;
                 } else {
@@ -885,9 +1104,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if(changePodButton && rackCodeEl && rackCodeSpan) {
             changePodButton.addEventListener("click", (e) => {
                 e.stopPropagation();
-                e.preventDefault();               
-
-                browlistModal.show();
+                e.preventDefault();    
+                cartBrowlist.show();
             });
         }
 
@@ -900,20 +1118,21 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
         
-        if(newTaskFrm) {
+        if(newTaskFrm && canSendCartOnlyEl) {
             newTaskFrm.addEventListener("submit", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 const formData = new FormData(newTaskFrm);
                 let priority = false;
                 const botaoSubmetido = e.submitter;
+                let canSendCartOnly = (canSendCartOnlyEl.value == "1");
 
                 if(rackCodeEl.value == "") {
                     Toast.create("Aviso", "Deve indicar o carrinho onde estão as peças!", TOAST_STATUS.WARNING, 5000);
                     return;
                 }
                 
-                if(itemArea.childElementCount == 0) {
+                if(!canSendCartOnly && itemArea.childElementCount == 0) {
                     Toast.create("Aviso", "Deve indicar o pelo menos uma peça!", TOAST_STATUS.WARNING, 5000);
                     return;
                 }
@@ -931,7 +1150,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 e.stopPropagation();
                 SbModal.confirm("Deseja cancelar a tarefa?", (e) => {
                     resetForm();
-                });                
+                }, undefined, "Cancelar", "Sim", "success", "Cancelar", "danger");                
             });
         }
         
@@ -957,45 +1176,44 @@ document.addEventListener("DOMContentLoaded", () => {
                 cancelButton.removeAttribute("disabled");
             }
         }       
-    }
+    }    
 
-    // Simulação de uma API
-    
-
-    async function showUnloadLocationsSelectionModal(formData, priority) {
-        
-       
+    async function showUnloadLocationsSelectionModal(formData, priority) {      
         if(priority) {
-            let correctPassword = sbData.pwd;
-            SbModal.prompt(
-                'Por favor, introduza a senha de acesso:', // Mensagem
-                '', // Valor padrão (vazio)
-                async (inputValue) => { // Callback para quando o botão OK é clicado
-                    if (btoa(inputValue) === correctPassword) {
-                        formData.append("priority", 1);
-                        chooseLocation(formData);                        
-                    } else {
-                        Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
-                        SbModal.closeModal();
-                        return false;
-                    }
-                },
-                undefined,
-                'Acesso Restrito', // Título do prompt,
-                'password',
-                {
-                    "data-vk" : "",
-                }
-            );
+            protectChooseLocation(formData);
         } else {
             chooseLocation(formData);
         }
-
-        // Opções de botões para a modal
-        
-
-        
     }
+
+    async function protectChooseLocation(formData) {
+        const correctPassword = sbData.pwd;
+
+        try {
+            SbModal.prompt(
+                'Por favor, introduza a senha de acesso:',
+                '',
+                async (inputValue) => { 
+                    if (btoa(inputValue) === correctPassword) {
+                        formData.append("priority", 1);
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        await chooseLocation(formData);
+                    } else {
+                        Toast.create("Aviso", "Senha incorreta", TOAST_STATUS.WARNING, 5000);
+                    }
+                },
+                undefined,
+                'Acesso Restrito',
+                'password',
+                {
+                    "data-vk": "",
+                }
+            );
+        } catch(error) {
+            Toast.create("Erro", "Ocorreu um erro ao enviar tarefa como prioritária", TOAST_STATUS.DANGER, 5000);
+        } 
+    }
+
 
     async function chooseLocation(formData) {
         let terminalCode = "";
@@ -1010,8 +1228,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if(multiLoadingDockEl) {
             multiLoad = multiLoadingDockEl.value;
         }
-        
-
 
         const fields = {
             "0" : [
@@ -1019,7 +1235,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     type : "select",
                     label : "Local de descarga",
                     id : "unloaddock",
-                    dataSource : `${sbData.site_url}unloadLocations/${terminalCode}/0`
+                    dataSource : `${sbData.site_url}unloadLocations/${terminalCode}/0`,
+                    valueField : 'id',
+                    textField : 'name'
                 }
             ],
             "1" : [
@@ -1028,6 +1246,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     label : "Local de descarga",
                     id : "unloaddock",
                     dataSource : `${sbData.site_url}unloadLocations/${terminalCode}/1`,
+                    valueField : 'id',
+                    textField : 'name',
                     dataAttributesToMap : [ 'rule' ],
                     events : {
                         'change' : async(e) => {
@@ -1047,7 +1267,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     type : "select",
                     label : "Local de carga",
                     id : "loaddock",
-                    dataSource : `${sbData.site_url}loadLocations/${terminalCode}`
+                    dataSource : `${sbData.site_url}loadLocations/${terminalCode}`,
+                    valueField : 'id',
+                    textField : 'name'
                 }
             ]
         };
@@ -1055,41 +1277,37 @@ document.addEventListener("DOMContentLoaded", () => {
         await SbModal.form(
             'Seleccionar local',
             fields[multiLoad],
-            async (results) => {
-               
+            async (results) => {               
                 if(results.unloaddock == "") {
                     Toast.create("Aviso", "Deve indicar um local de descarga válido!", TOAST_STATUS.WARNING, 5000);
                     return false;
                 }
-
                 if(multiLoad == "1" && results.loaddock == "") {
                     Toast.create("Aviso", "Deve indicar um local de carga válido!", TOAST_STATUS.WARNING, 5000);
                     return false;
-                }
-                
+                }                
                 formData.append("unloadDock", results.unloaddock);
                 if(multiLoad == "1") {
                     formData.append("loadDock", results.loaddock);
                 }
-
                 const result = await sendFormDataToServer(`${sbData.site_url}sendTask`, formData, 'POST');  
                 showApiResponseToast(result);
                 if(result.type === "success") {
                     resetForm();
-                } 
-
+                }
             },
-            () => {
-                console.log('Seleção cancelada.');
-            },
-            { modalSize: 'lg' } // Torna a modal grande
-        );
-
-
-
-
-
-        
+            undefined,
+            { modalSize: 'lg' },
+            [{
+                text: 'OK',
+                icon : 'bi bi-check2',
+                variant : 'success'
+            },{
+                text : 'Cancelar',
+                icon : 'bi bi-x-lg',
+                variant: 'danger'
+            }]
+        );        
     }
 
     function resetForm() {
@@ -1408,7 +1626,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const browlistModal = new Browlist({
+        const itemBrowlist = new Browlist({
             multipleSelection: true,
             modalTitle: definition.modalTitle,
             dataSource: `${sbData.site_url}tableData`,
@@ -1437,7 +1655,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        browlistModal.show();
+        itemBrowlist.show();
     }
 
     function updateRobotPositionInMap(data) {
