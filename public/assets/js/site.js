@@ -411,15 +411,15 @@ document.addEventListener("DOMContentLoaded", () => {
             type = "CART";
             data = inputString;
             console.log("Carrinho detetado: " + inputString);
-        } else if (inputString.startsWith("ART:") && inputString.includes(";") && company == "POLYLANEMA") {
+        } else if (inputString.startsWith("ART:") && inputString.includes(";")) {
             type = "ARTICLE";
             data = inputString.substring(4);
             console.log("Artigo detetado: " + inputString);
-        } else if (inputString.startsWith("OC:") && inputString.length > 3 && company == "POLYLANEMA") {
+        } else if (inputString.startsWith("OC:") && inputString.length > 3) {
             type = "CUTORDER";
             data = inputString.substring(3);
             console.log("Ordem de corte detetada: " + inputString);
-        } else if (inputString.length === 10 && !isNaN(inputString) && !inputString.includes(".") && company == "TECNOLANEMA") {
+        } else if (inputString.length === 10 && !isNaN(inputString) && !inputString.includes(".")) {
             type = "WORKORDER";
             data = inputString;
             console.log("Ordem de fabrico detetada: " + inputString);
@@ -761,9 +761,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     let btnText = "Dar prioridade";
                     let targetPriority = "1";  
                     let statusNum = parseInt(row.estadonum);
+
+                    result += `<div class="btn-group d-flex justify-content-center" role="group" aria-label="Ações">`;
                     
                     if([1,2,3,4,6,0].includes(statusNum)) {
-                        result += `<div class="btn-group d-flex justify-content-center" role="group" aria-label="Ações">`;
+                        
                         result += `
                         <button type="button" class="btn btn-warning btn-sm cancel-task-line-button" data-id="${row.id}" data-task="${row.u_kidtaskstamp}">
                             <i class="bi bi-trash-fill"></i> 
@@ -780,10 +782,18 @@ document.addEventListener("DOMContentLoaded", () => {
                                 ${btnText}
                             </button>
                             `;
-                        }
+                        }                       
                         
-                        result += `</div>`;
                     }
+                    if(row.enviocarro === 0) {
+                        result += `
+                            <button type="button" class="btn btn-secondary btn-sm see-task-lines-button" data-id="${row.id}" data-task="${row.u_kidtaskstamp}">
+                                <i class="bi bi-eye-fill"></i> 
+                            </button>
+                        `;
+                    }
+
+                    result += `</div>`;
                     return result;
                     
                 }
@@ -920,6 +930,56 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
+        const detailsBrowlistColumns = [
+            {
+                field : 'tipo',
+                title : 'Tipo',
+                render: function(row) {
+                    if(row.tipo === 1) {
+                        return "Artigo";
+                    } else {
+                        return row.orinmdoc;
+                    }
+                }
+            },
+            {
+                field : 'details',
+                title : 'Detalhes',
+                render : function(row) {
+                    if(row.tipo === 1) {
+                        return `${row.ref} - ${row.design}`;
+                    } else {
+                        return `${row.orindoc}`;
+                    }
+                }
+            }
+        ];
+        const detailsBrowlist = new Browlist({
+            hideSelectionColumn : true,
+            modalTitle : `Detalhes da tarefa #`,
+            dataSource : `${sbData.site_url}tableData`,
+            additionalParams : {
+                columnsToShow : detailsBrowlistColumns,
+                requestType : "TASKHISTORY"
+            },            
+            rowHeightClass: 'browlist-row-lg',    
+            httpMethod: 'POST',
+            columns: detailsBrowlistColumns,
+            pageSize: 10,
+            searchable: true,
+            sortable: true,
+            buttons: [
+                {
+                    hidden : true
+                },
+                {
+                    variant: 'secondary',
+                    text : 'Fechar'
+                }
+
+            ]
+        });
+
         const historyBrowlist = new Browlist({
             hideSelectionColumn : true,
             modalTitle : 'Histórico de tarefas',
@@ -998,6 +1058,13 @@ document.addEventListener("DOMContentLoaded", () => {
                             "data-vk" : "",
                         }
                     ); 
+                }
+
+                if(field === 'accoes' && event.target.classList.contains('see-task-lines-button')) {
+                             
+
+
+
                 }
 
 
