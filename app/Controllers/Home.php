@@ -598,4 +598,54 @@ class Home extends BaseController
             "message" => "Ocorreu um erro ao alterar a prioridade da tarefa #$taskId. Detalhes: " . $response->message
         ]);
     }
+
+    public function postChangeRobotStatus() : ResponseInterface{
+        $request            = service('request');
+
+        $operation         = $request->getPost("operation");
+
+        if(!$operation) {
+            return $this->response->setJSON([
+                "type" => "error",
+                "message" => "Deve indicar o tipo de operação a realizar!"
+            ]);
+        }
+
+        $shortCode = $webServiceOption = $messageText = "";
+        if($operation == "STOP") {
+            $shortCode = "SAM";
+            $webServiceOption = HIKROBOT_STOP_ROBOT;
+            $messageText = "paragem";
+        } else if($operation == "RESUME") {
+            $shortCode = "RAM";
+            $webServiceOption = HIKROBOT_RESUME_ROBOT;
+            $messageText = "arranque";
+        }
+
+        if(empty($webServiceOption)) {
+            return $this->response->setJSON([
+                "type" => "error",
+                "message" => "Operação inválida!"
+            ]);
+        }
+
+        $requestData = array(
+            "reqCode"   => newStamp($shortCode),
+            "robotCount" => "-1",
+            "mapShortName"  => "LN_Floor00"       
+        );
+
+        $response = $this->webServicesModel->callWebservice($webServiceOption, $requestData);
+        if(isset($response->code) && $response->code === "0") {
+           
+            return $this->response->setJSON([
+                "type" => "success",
+                "message" => "Comando de $messageText enviado com sucesso!"
+            ]);
+        } 
+        return $this->response->setJSON([
+            "type" => "error",
+            "message" => "Ocorreu um erro ao enviar o comando de $messageText para o robot. Detalhes: " . $response->message
+        ]);
+    }
 }

@@ -822,6 +822,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const showHistoryButton = document.getElementById("show-task-history");
         const cancelButton = document.getElementById("cancel-task-button");
         const correctPassword = sbData.pwd;
+        const resumeRobotButton = document.getElementById("resume-robot-button");
+        const stopRobotButton = document.getElementById("stop-robot-button");
         
 
         if (typeof Browlist === 'undefined') {
@@ -832,6 +834,29 @@ document.addEventListener("DOMContentLoaded", () => {
         if(typeof RobotMapViewer === 'undefined') {
             console.error('A classe RobotMapViewer não está definida. Certifique-se que a biblioteca foi carregada.');
             return;
+        }
+
+        if(resumeRobotButton && stopRobotButton) {
+            resumeRobotButton.addEventListener("click", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.target.setAttribute("disabled", "disabled");
+                let formData = new FormData();
+                formData.append("operation", "RESUME");
+                const result = await sendFormDataToServer(`${sbData.site_url}changeRobotStatus`, formData, "POST", null, true);
+                showApiResponseToast(result);
+                e.target.removeAttribute("disabled");                              
+            });
+            stopRobotButton.addEventListener("click", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.target.setAttribute("disabled", "disabled");
+                let formData = new FormData();
+                formData.append("operation", "STOP");
+                const result = await sendFormDataToServer(`${sbData.site_url}changeRobotStatus`, formData, "POST", null, true);
+                showApiResponseToast(result);
+                e.target.removeAttribute("disabled");
+            });
         }
 
         openOffcanvasTrigger.addEventListener('click', function() {

@@ -42,7 +42,7 @@
         <form id="config-form" class="d-flex flex-column h-100">
             <div class="flex-grow-1">            
                 <div class="row">
-                    <div class="col">
+                    <div class="col-12 mb-2">
                     <?php if(!empty($terminalList)) : ?>
                         <label for="terminal" class="form-label">Terminal</label>
                         <select name="terminal" class="form-select">
@@ -61,6 +61,17 @@
                             Não existem terminais configurados! Contacte administrador!
                             </div>
                         <?php endif; ?>
+                    </div>
+                    <div class="col-12">
+                        <h6 class="fw-bold mb-4">Opções robots</h6>
+                        <div class="d-flex justify-content-center gap-2">
+                            <button type="button" class="btn btn-success btn-lg fs-1" id="resume-robot-button">
+                                <i class="bi bi-play-fill"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-lg fs-1" id="stop-robot-button">
+                                <i class="bi bi-stop-fill"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>            
             </div>

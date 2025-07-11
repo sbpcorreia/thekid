@@ -15,3 +15,4 @@ $routes->post("cartItem", "Home::postCartItem");
 $routes->get("loadLocations/(:any)", "Home::getLoadLocations/$1");
 $routes->post("cancelTask", "Home::postCancelTask");
 $routes->post("changePriority", "Home::postChangePriority");
+$routes->post("changeRobotStatus", "Home::postChangeRobotStatus");
