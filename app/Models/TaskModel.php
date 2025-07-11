@@ -49,7 +49,7 @@ class TaskModel extends Model {
 
     public function getPendingTasksData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "asc") {
         $builder = $this->db->table($this->table);
-        $builder->select("u_kidtaskstamp, id, CONVERT(DATE, data, 104) AS data, hora, carrinho, ponto1.ponto AS ptoori, ponto2.ponto AS ptodes, estado, prioridade, estado AS estadonum, prioridade AS prioridadenum, enviocarro");
+        $builder->select("u_kidtaskstamp, id, CONVERT(DATE, data, 104) AS data, hora, carrinho, ponto1.ponto AS ptoori, ponto2.ponto AS ptodes, ponto1.descricao AS ptoorinom, ponto2.descricao AS ptodesnom, estado, prioridade, estado AS estadonum, prioridade AS prioridadenum, enviocarro");
         $builder->join("u_kidspots AS ponto1", "ponto1.ponto=u_kidtask.ptoori", "left");
         $builder->join("u_kidspots AS ponto2", "ponto2.ponto=u_kidtask.ptodes", "left");
         if(!empty($search)) {

@@ -12,6 +12,7 @@ use Ratchet\WebSocket\WsServer;
 
 use App\Models\DevicesModel;
 use App\Libraries\RobotTaskTracker;
+use App\Models\SpotModel;
 use App\Models\TerminalModel;
 use App\Models\WebServiceModel;
 use App\Models\TaskModel;
@@ -26,6 +27,7 @@ class HikrobotWebSocketServer implements MessageComponentInterface
     protected WebServiceModel $webserviceModel;
     protected TerminalModel $terminalModel;
     protected TaskModel $taskModel;
+    protected SpotModel $spotModel;
 
     // Cache para os últimos dados de robô processados
     protected array $cachedRobotData = [];
@@ -49,6 +51,8 @@ class HikrobotWebSocketServer implements MessageComponentInterface
         $this->webserviceModel  = new WebServiceModel();
         $this->terminalModel    = new TerminalModel();
         $this->taskModel        = new TaskModel();
+        $this->spotModel        = new SpotModel();
+
 
         // Timer para polling de dados de robôs (a cada 5 segundos)
         $loop->addPeriodicTimer(5, function () {
@@ -92,22 +96,21 @@ class HikrobotWebSocketServer implements MessageComponentInterface
         }
 
         $terminalCode = $data["terminalCode"] ?? null;
-        $loadLocation = $unloadLocation = "";
+        $unloadLocation = "";
 
         if (!empty($terminalCode)) {
             try {
                 $terminalInfo = $this->terminalModel->getTerminalInfo($terminalCode);
                 if (!empty($terminalInfo)) {
-                    $unloadLocation = $terminalInfo->ponto;
-                    $loadLocation = $terminalInfo->ponto;
-                    if(!empty($terminalInfo->ponto2)) {
-                        $unloadLocation = $terminalInfo->ponto2;
-                    }                   
-
-                    // Armazena o locationCode associado a esta conexão
-                    $this->clientLocations->offsetSet($from, $unloadLocation);
-                    echo "Cliente {$from->resourceId} associado à localização de descarga: {$unloadLocation}, carga: {$loadLocation}\n";
-                    
+                    $unloadInfo = $this->spotModel->getDefaultLoadingDock($terminalInfo->codigo);
+                    if(!empty($unloadInfo)) {
+                        $unloadLocation = $unloadInfo->ponto;
+                         // Armazena o locationCode associado a esta conexão
+                        $this->clientLocations->offsetSet($from, $unloadLocation);
+                        echo "Cliente {$from->resourceId} associado à localização de descarga: {$unloadLocation}\n";
+                    } else {
+                        echo "Cliente {$from->resourceId} sem local de descarga associado!\n";
+                    }
                 } else {
                     echo "Terminal não encontrado {$terminalCode}\n";
                 }

@@ -723,14 +723,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 title : 'Origem',
                 dataField : 'ptoori',
                 sortable :true,
-                searchable : true
+                searchable : true,
+                render : function(row) {
+                    return `<div class="text-center fs-6">${row.ptoori}<br />(${row.ptoorinom})</div>`;
+                }
             },
             {
                 field : 'ptodes',
                 title : 'Destino',
                 dataField : 'ptodes',
                 sortable : true,
-                searchable : true
+                searchable : true,
+                render: function(row) {
+                    return `<div class="text-center fs-6">${row.ptodes}<br />(${row.ptodesnom})</div>`;
+                }
             },
             {
                 field : 'prioridade',
@@ -1218,7 +1224,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 e.stopPropagation();
                 SbModal.confirm("Deseja cancelar a tarefa?", (e) => {
                     resetForm();
-                }, undefined, "Cancelar", "Sim", "success", "Cancelar", "danger");                
+                }, undefined, "Cancelar", "Sim", "bi-check2", "success", "Cancelar", "bi-x-lg", "danger");                
             });
         }
         
