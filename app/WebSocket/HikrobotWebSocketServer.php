@@ -250,8 +250,8 @@ class HikrobotWebSocketServer implements MessageComponentInterface
                         $robot->taskData = [
                             "taskCode"      => $taskData->id,
                             "taskStamp"     => $taskData->u_kidtaskstamp,
-                            "origin"        => $taskData->ptoori,
-                            "destination"   => $taskData->ptodes
+                            "origin"        => $taskData->ptoori . ' (' . $taskData->ptoorinom . ')',
+                            "destination"   => $taskData->ptodes . ' (' . $taskData->ptodesnom . ')'
                         ];
                     } else {
                         $robot->taskData = [];

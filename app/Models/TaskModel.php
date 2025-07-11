@@ -15,7 +15,9 @@ class TaskModel extends Model {
 
     public function getTaskByCartCode($cartCode) {
         $builder = $this->db->table($this->table);
-        $builder->select("u_kidtaskstamp, id, ptoori, ptodes");
+        $builder->select("u_kidtaskstamp, id, ptoori, ptodes, ponto1.descricao AS ptoorinom, ponto2.descricao AS ptodesnom");
+        $builder->join("u_kidspots AS ponto1", "ponto1.ponto=u_kidtask.ptoori", "left");
+        $builder->join("u_kidspots AS ponto2", "ponto2.ponto=u_kidtask.ptodes", "left");
         $builder->where("carrinho", $cartCode);
         $builder->where("estado", 2);
         $query = $builder->get();
