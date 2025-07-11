@@ -1354,6 +1354,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     Toast.create("Aviso", "Deve indicar um local de carga válido!", TOAST_STATUS.WARNING, 5000);
                     return false;
                 }                
+
+                if(multiLoad == "1" && results.loaddock == results.unloaddock) {
+                    Toast.create("Aviso", "O local de carga não pode ser o local de descarga!", TOAST_STATUS.WARNING, 5000);
+                    return false;
+                }
+
                 formData.append("unloadDock", results.unloaddock);
                 if(multiLoad == "1") {
                     formData.append("loadDock", results.loaddock);

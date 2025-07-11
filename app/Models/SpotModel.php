@@ -21,7 +21,7 @@ class SpotModel extends Model {
 
     public function getUnloadLocations($terminal, $except = "") {
         $builder = $this->db->table($this->table);
-        $builder->select("ponto AS id, descricao AS name");
+        $builder->select("ponto AS id, '(' + ponto + ') ' descricao AS name");
         $builder->whereIn("tipo", array(2,3));
         $builder->where("terminal", $terminal);
         if($except) {
@@ -33,7 +33,7 @@ class SpotModel extends Model {
 
     public function getUnloadLocationsExcludingTerminal($terminal) {
         $builder = $this->db->table($this->table);
-        $builder->select("ponto AS id, descricao AS name");
+        $builder->select("ponto AS id, '(' + ponto + ') ' + descricao AS name");
         $builder->whereIn("tipo", array(2,3));
         $builder->where("terminal!=", $terminal);
         $query = $builder->get();
@@ -42,8 +42,8 @@ class SpotModel extends Model {
 
     public function getLoadLocations($terminal) {
         $builder = $this->db->table($this->table);
-        $builder->select("ponto AS id, descricao AS name");
-        $builder->where("tipo", 1);
+        $builder->select("ponto AS id, '(' + ponto + ') ' + descricao AS name");
+        $builder->whereIn("tipo", array(1,3));
         $builder->where("terminal", $terminal);
         $query = $builder->get();
         return $query->getResult();
@@ -53,7 +53,7 @@ class SpotModel extends Model {
         $builder = $this->db->table($this->table);
         $builder->select("ponto");
         $builder->where("terminal", $terminal);
-        $builder->where("tipo", 1);
+        $builder->whereIn("tipo", array(1,3));
         $builder->orderBy("ponto", "ASC");
         $query = $builder->get();
         return $query->getRow();
