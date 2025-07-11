@@ -195,6 +195,17 @@ class Home extends BaseController
                     $data[$key]->prioridade = $priorityNames[$data[$key]->prioridade];
                 }
             }
+        } else if($requestType === "TASKDETAILS") {
+            $taskStamp = $inputData->taskStamp;
+            if(empty($taskStamp)) {
+                return $this->response->setJSON([
+                    "type" => "warning",
+                    "message" => "Não foi indicado o ID da tarefa!"
+                ]);
+            }
+            $totalRecords = $this->taskLinesModel->countData($taskStamp);
+            $data = $this->taskLinesModel->getData($taskStamp, $page, $pageSize);
+
         }
         return $this->response->setJSON([
             "type" => "success",
@@ -310,7 +321,7 @@ class Home extends BaseController
                 "type" => "success",
                 "data" => $workOrder
             ]);
-        }
+        } 
 
         return $this->response->setJSON([
             "type" => "error",

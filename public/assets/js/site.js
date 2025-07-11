@@ -957,11 +957,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const detailsBrowlist = new Browlist({
             hideSelectionColumn : true,
             modalTitle : `Detalhes da tarefa #`,
-            dataSource : `${sbData.site_url}tableData`,
-            additionalParams : {
-                columnsToShow : detailsBrowlistColumns,
-                requestType : "TASKHISTORY"
-            },            
+            dataSource : `${sbData.site_url}tableData`,                      
             rowHeightClass: 'browlist-row-lg',    
             httpMethod: 'POST',
             columns: detailsBrowlistColumns,
@@ -1061,10 +1057,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if(field === 'accoes' && event.target.classList.contains('see-task-lines-button')) {
-                             
-
-
-
+                    const originalButtonContent = event.target.innerHTML;
+                    const taskId = record.id;
+                    const taskStamp = record.u_kidtaskstamp;
+                    detailsBrowlist.options.additionalParams = {
+                        columnsToShow : detailsBrowlistColumns,
+                        requestType : "TASKDETAILS",
+                        taskStamp : taskStamp
+                    };
+                    detailsBrowlist.show();
                 }
 
 

@@ -122,6 +122,12 @@ class Browlist {
             .browlist-modal .table-active {
                 background-color: #e2e6ea; /* Cor de fundo para linha selecionada */
             }
+            .browlist-modal.modal {
+                z-index: 1060;
+            }
+            .browlist-modal + .modal-backdrop {
+                z-index: 1059;
+            }
         `;
         document.head.appendChild(style);
     }
