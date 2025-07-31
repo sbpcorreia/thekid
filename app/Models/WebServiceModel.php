@@ -15,8 +15,7 @@ class WebServiceModel extends Model {
         $ipAddress  = $config->ipAddress;
         $port       = $config->port;
         $this->url  = sprintf("http://%s%s/rcms-dps/rest/", $ipAddress, !empty($port) ? ":" . $port : "");
-        $this->url2 = sprintf("http://%s%s/rcms/services/rest/hikRpcService/", $ipAddress, !empty($port) ? ":" . $port : "");
-        
+        $this->url2 = sprintf("http://%s%s/rcms/services/rest/hikRpcService/", $ipAddress, !empty($unsecurePort) ? ":" . $unsecurePort : "");
     }
 
     public function callWebservice($method, $body = array(), $object = true) {
