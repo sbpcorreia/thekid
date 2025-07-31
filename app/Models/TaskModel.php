@@ -104,7 +104,7 @@ class TaskModel extends Model {
         if($status !== -1) {
             $builder->set("estado", $status);
         }        
-        if(!$points > 0) {
+        if($points > 0) {
             $builder->set("pontos", $points);
         }
         if($estimatedTime > 0) {

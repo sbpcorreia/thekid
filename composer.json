@@ -10,7 +10,7 @@
         "slack": "https://codeigniterchat.slack.com"
     },
     "require": {
-        "php": "^8.2",
+        "php": "^8.1",
         "cboden/ratchet": "v0.5.x-dev",
         "codeigniter4/framework": "4.6.2",
         "guzzlehttp/guzzle": "7.8.x-dev",
