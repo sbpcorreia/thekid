@@ -21,6 +21,9 @@ class TerminalModel extends Model {
     }
 
     public function getTerminalList() {
+        log_message("info",json_encode($this->db));
+
+
         $builder = $this->db->table($this->table);
         $builder->select("u_kidterm.codigo, u_kidterm.descricao, u_kidterm.empresa");
         $builder->orderBy("u_kidterm.codigo");
