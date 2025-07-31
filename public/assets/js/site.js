@@ -824,7 +824,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const correctPassword = sbData.pwd;
         const resumeRobotButton = document.getElementById("resume-robot-button");
         const stopRobotButton = document.getElementById("stop-robot-button");
-        
+        const sendRobotHomeButton = document.getElementById("send-robot-home-button");
+        const robotIdEl = document.getElementById("robot-id-select");
 
         if (typeof Browlist === 'undefined') {
             console.error('A classe Browlist não está definida. Certifique-se de que a biblioteca Browlist foi carregada.');
@@ -836,7 +837,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if(resumeRobotButton && stopRobotButton) {
+        if(resumeRobotButton && stopRobotButton && sendRobotHomeButton && robotIdEl) {
             resumeRobotButton.addEventListener("click", async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -853,6 +854,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 e.target.setAttribute("disabled", "disabled");
                 let formData = new FormData();
                 formData.append("operation", "STOP");
+                const result = await sendFormDataToServer(`${sbData.site_url}changeRobotStatus`, formData, "POST", null, true);
+                showApiResponseToast(result);
+                e.target.removeAttribute("disabled");
+            });
+            sendRobotHomeButton.addEventListener("click", async(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.target.setAttribute("disabled", "disabled");
+                const robotId = robotIdEl.value;
+
+                if(robotIdEl.selectedIndex === 0) {
+                    Toast.create("Aviso", "Deve selecionar um robot!", TOAST_STATUS.WARNING, 5000);
+                    return;
+                }
+
+                const selectedOption = robotIdEl.options[robotIdEl.selectedIndex];
+                const robotHomePosition = selectedOption.dataset.home;
+
+                let formData = new FormData();
+                formData.append("operation", "HOME");
+                formData.append("robotCode", robotId);
+                formData.append("position", robotHomePosition);
                 const result = await sendFormDataToServer(`${sbData.site_url}changeRobotStatus`, formData, "POST", null, true);
                 showApiResponseToast(result);
                 e.target.removeAttribute("disabled");

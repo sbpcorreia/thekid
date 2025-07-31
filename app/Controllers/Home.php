@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\ArticlesModel;
 use App\Models\CartsModel;
 use App\Models\CutOrdersModel;
+use App\Models\DevicesModel;
 use App\Models\RulesModel;
 use App\Models\SpotModel;
 use App\Models\TaskLinesModel;
@@ -21,6 +22,7 @@ class Home extends BaseController
     protected $articlesModel;
     protected $cartsModel;    
     protected $cutOrdersModel;
+    protected $devicesModel;
     protected $ordersModel;
     protected $rulesModel;
     protected $spotsModel;
@@ -35,6 +37,7 @@ class Home extends BaseController
         $this->articlesModel    = new ArticlesModel();
         $this->cartsModel       = new CartsModel();        
         $this->cutOrdersModel   = new CutOrdersModel();
+        $this->devicesModel     = new DevicesModel();
         $this->ordersModel      = null;
         $this->rulesModel       = new RulesModel();
         $this->spotsModel       = new SpotModel();
@@ -42,7 +45,8 @@ class Home extends BaseController
         $this->taskLinesModel   = new TaskLinesModel();
         $this->terminalModel    = new TerminalModel();
         $this->webServicesModel = new WebServiceModel();
-        $this->workOrdersModel  = new WorkOrdersModel();        
+        $this->workOrdersModel  = new WorkOrdersModel();     
+
     }
 
     public function index()
@@ -91,12 +95,15 @@ class Home extends BaseController
             }   
         }
 
+        $devicesList = $this->devicesModel->getDeviceList();
+        $this->navbarData["devicesList"] = $devicesList;
+
         
         $viewData = array(
             "terminalCode"      => $terminalCode,
             "company"           => strtoupper($company),
             "multiLoad"         => $multiLoad,
-            "canSendCartOnly"   => $canSendCartsOnly
+            "canSendCartOnly"   => $canSendCartsOnly            
         );
         
         echo view("base/header", $this->pageData);
@@ -308,6 +315,23 @@ class Home extends BaseController
                 "type" => "success",
                 "data" => $workOrder
             ]);
+        } else if($type == "CUTORDERJA") {
+            $barcodeArray       = explode(";", $barcodeData);
+            $cutOrderStamp     = trim($barcodeArray[0]);
+            $cutOrderNumber    = trim($barcodeArray[1]);
+
+            $cutOrder = $this->cutOrdersModel->getProdJAByStamp($cutOrderStamp);
+            if(empty($cutOrder)) {
+                return $this->response->setJSON([
+                    "type" => "warning",
+                    "message" => "A ordem de corte jato de água não foi encontrada!"
+                ]); 
+            }
+            return $this->response->setJSON([
+                "type" => "success",
+                "data" => $cutOrder
+            ]);
+        
         } else if($type == "WORKORDER") {
             $workOrderNumber    = trim($barcodeData);
             $workOrder = $this->workOrdersModel->getDataByCode($workOrderNumber);
@@ -630,7 +654,9 @@ class Home extends BaseController
     public function postChangeRobotStatus() : ResponseInterface{
         $request            = service('request');
 
-        $operation         = $request->getPost("operation");
+        $operation          = $request->getPost("operation");
+        $robotCode          = $request->getPost("robotCode");
+        $position           = $request->getPost("position");
 
         if(!$operation) {
             return $this->response->setJSON([
@@ -644,10 +670,41 @@ class Home extends BaseController
             $shortCode = "SAM";
             $webServiceOption = HIKROBOT_STOP_ROBOT;
             $messageText = "paragem";
+            $requestData = [
+                "reqCode"   => newStamp($shortCode),
+                "robotCount" => "-1",
+                "mapShortName"  => "LN_Floor00"       
+            ];
         } else if($operation == "RESUME") {
             $shortCode = "RAM";
             $webServiceOption = HIKROBOT_RESUME_ROBOT;
             $messageText = "arranque";
+            $requestData = [
+                "reqCode"   => newStamp($shortCode),
+                "robotCount" => "-1",
+                "mapShortName"  => "LN_Floor00"       
+            ];
+        } else if($operation == "HOME") {
+            $shortCode = "RHM";
+            $webServiceOption = HIKROBOT_GEN_AGV_SCHEDULING_TASK;
+            $messageText = "envio para casa";
+            $requestData = [
+                "reqCode"   => newStamp($shortCode),
+                "taskTyp"   => "ZLN001",
+                "positionCodePath" => [
+                    [
+                        "positionCode" => $position,
+                        "type" => "00"
+                    ],
+                    [
+                        "positionCode" => $position,
+                        "type" => "00"
+                    ]
+                ],
+                "priority" => "10",
+                "agvCode" => $robotCode,
+                "taskCode" => newStamp($shortCode)
+            ];
         }
 
         if(empty($webServiceOption)) {
@@ -657,11 +714,7 @@ class Home extends BaseController
             ]);
         }
 
-        $requestData = array(
-            "reqCode"   => newStamp($shortCode),
-            "robotCount" => "-1",
-            "mapShortName"  => "LN_Floor00"       
-        );
+        
 
         $response = $this->webServicesModel->callWebservice($webServiceOption, $requestData);
         if(isset($response->code) && $response->code === "0") {

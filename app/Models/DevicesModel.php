@@ -29,6 +29,13 @@ class DevicesModel extends Model {
         return "";
     }
 
+    public function getDeviceList() {
+        $builder = $this->db->table($this->table);
+        $builder->select("nome, ip, code, casa");
+        $query = $builder->get();
+        return $query->getResult();
+    }
+
     public function getDevice($deviceIp, $deviceCode = "") {
         $builder = $this->db->table($this->table);
         $builder->select("nome, ip, code");

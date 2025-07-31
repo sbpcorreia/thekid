@@ -62,17 +62,34 @@
                             </div>
                         <?php endif; ?>
                     </div>
-                    <div class="col-12">
-                        <h6 class="fw-bold mb-4">Opções robots</h6>
+                    <div class="col-12 mb-2">
+                        <hr />
+                        <h6 class="fw-bold mb-4">Opções robots</h6>                        
                         <div class="d-flex justify-content-center gap-2">
-                            <button type="button" class="btn btn-success btn-lg fs-1" id="resume-robot-button">
+                            <button type="button" class="btn btn-success btn-lg fs-1" id="resume-robot-button" data-bs-toggle="tooltip" title="Resumir">
                                 <i class="bi bi-play-fill"></i>
                             </button>
-                            <button type="button" class="btn btn-danger btn-lg fs-1" id="stop-robot-button">
+                            <button type="button" class="btn btn-danger btn-lg fs-1" id="stop-robot-button" data-bs-toggle="tooltip" title="Parar">
                                 <i class="bi bi-stop-fill"></i>
                             </button>
                         </div>
                     </div>
+<?php if(!empty($devicesList)):  ?>
+                    <div class="col-12">
+                        <hr />
+                        <select class="form-select mb-2" id="robot-id-select">
+                            <option value=""></option>
+<?php foreach($devicesList as $device) : ?>
+                            <option value="<?= $device->code; ?>" data-home="<?= $device->casa; ?>">(<?= $device->code; ?>) <?= $device->nome; ?></option>
+<?php endforeach; ?>
+                        </select>
+                        <div class="d-flex justify-content-center gap-2">
+                            <button class="btn btn-primary btn-lg fs-1" id="send-robot-home-button" data-bs-toggle="tooltip" title="Enviar para casa">
+                                <i class="bi bi-house-down-fill"></i>
+                            </button>
+                        </div>
+                    </div>
+<?php endif; ?>
                 </div>            
             </div>
             <div class="mt-3">
