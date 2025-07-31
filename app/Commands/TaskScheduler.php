@@ -135,9 +135,10 @@ class TaskScheduler extends BaseCommand
                     $logger->error("Ocorreu um erro ao atualizar o estado da tarefa na base de dados!");
                 }
             } else {
-                $errorMessage = "Erro ao enviar a tarefa para o robot com a requisição " . $requestData['reqCode'] . ": " . ($responseData->message ?? 'Erro desconhecido da API');
+                $errorMessage = "Erro ao enviar a tarefa para o robot com a requisição " . $requestData['reqCode'] . ": " . (json_encode($responseData) ?? 'Erro desconhecido da API');
                 $logger->error($errorMessage . " Resposta: " . json_encode($responseData));
-                $result = $this->tasksModel->updateTaskStatus($taskStamp, -1, 0, 0, "XAX", $responseData->code, $responseData->message);
+
+                $result = $this->tasksModel->updateTaskStatus($taskStamp, -1, 0, 0, $responseData->code, $responseData->message);
                 if(!$result) {
                     $logger->error("Ocorreu um erro ao atualizar o estado da tarefa na base de dados!");
                 }
