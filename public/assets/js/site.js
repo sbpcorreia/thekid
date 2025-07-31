@@ -966,7 +966,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 field : 'tipo',
                 title : 'Tipo',
                 render: function(row) {
-                    if(row.tipo === 1) {
+                    if(row.tipo === "1") {
                         return "Artigo";
                     } else {
                         return row.orinmdoc;
@@ -977,7 +977,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 field : 'details',
                 title : 'Detalhes',
                 render : function(row) {
-                    if(row.tipo === 1) {
+                    if(row.tipo === "1") {
                         return `${row.ref} - ${row.design}`;
                     } else {
                         return `${row.orindoc}`;

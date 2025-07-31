@@ -14,9 +14,5 @@ class WebServices extends BaseConfig {
      * @var string
      */
     public $port = "8182";
-
-    public $unsecurePort = "8081";
-
-
     
 } 

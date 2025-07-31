@@ -581,7 +581,7 @@ class Home extends BaseController
         } 
         return $this->response->setJSON([
             "type" => "error",
-            "message" => "Ocorreu um erro ao cancelar a tarefa #$taskId. Detalhes: " . $response->message
+            "message" => "Ocorreu um erro ao cancelar a tarefa #$taskId. Detalhes: " . ($response->message ?? "")
         ]);
     }
 
