@@ -550,7 +550,7 @@ class Home extends BaseController
         // DATA/HORA: 31/07/2025 11:34
         // 
         // Caso a tarefa esteja no estado lançada, permite cancelar a tarefa
-        if($task->estado == 99) {
+        if($task->estado === 99) {
             $result = $this->taskModel->updateTaskStatus($taskStamp, 5);
             if(!$result) {
                 return $this->response->setJSON([
