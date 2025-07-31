@@ -725,7 +725,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 sortable :true,
                 searchable : true,
                 render : function(row) {
-                    return `<div class="text-center fs-6">${row.ptoori}<br />(${row.ptoorinom})</div>`;
+                    return `<div class="text-center fs-6">${row.ptoori ?? ""}<br />${row.ptoorinom ?? "- Desconhecido -"}</div>`;
                 }
             },
             {
@@ -735,7 +735,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 sortable : true,
                 searchable : true,
                 render: function(row) {
-                    return `<div class="text-center fs-6">${row.ptodes}<br />(${row.ptodesnom})</div>`;
+                    return `<div class="text-center fs-6">${row.ptodes ?? ""}<br />${row.ptodesnom ?? "- Desconhecido -"}</div>`;
                 }
             },
             {
@@ -770,7 +770,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     result += `<div class="btn-group d-flex justify-content-center" role="group" aria-label="Ações">`;
                     
-                    if([1,2,3,4,6,0].includes(statusNum)) {
+                    if([1,2,3,4,6,99].includes(statusNum)) {
                         
                         result += `
                         <button type="button" class="btn btn-warning btn-sm cancel-task-line-button" data-id="${row.id}" data-task="${row.u_kidtaskstamp}">

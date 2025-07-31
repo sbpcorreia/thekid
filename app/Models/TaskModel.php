@@ -15,7 +15,7 @@ class TaskModel extends Model {
 
     public function getTaskByCartCode($cartCode) {
         $builder = $this->db->table($this->table);
-        $builder->select("u_kidtaskstamp, id, ptoori, ptodes, ponto1.descricao AS ptoorinom, ponto2.descricao AS ptodesnom");
+        $builder->select("u_kidtaskstamp, id, u_kidtask.ptoori, u_kidtask.ptodes, ponto1.descricao AS ptoorinom, ponto2.descricao AS ptodesnom");
         $builder->join("u_kidspots AS ponto1", "ponto1.ponto=u_kidtask.ptoori", "left");
         $builder->join("u_kidspots AS ponto2", "ponto2.ponto=u_kidtask.ptodes", "left");
         $builder->where("carrinho", $cartCode);
@@ -23,6 +23,15 @@ class TaskModel extends Model {
         $query = $builder->get();
         return $query->getRow();
     }
+
+    public function getTaskByStamp($taskStamp) {
+        $builder = $this->db->table($this->table);
+        $builder->select("*");
+        $builder->where("u_kidtask.u_kidtaskstamp", $taskStamp);
+        $query = $builder->get();
+        return $query->getRow();
+    }
+
 
     public function getPendingTasks() {
         $builder = $this->db->table($this->table);
@@ -92,7 +101,7 @@ class TaskModel extends Model {
             $builder->set("dtfim", "CONVERT(DATE, GETDATE(), 104)", false);
             $builder->set("hfim", "CONVERT(VARCHAR(8),GETDATE(), 108)", false);
         }   
-        if($status > -1) {
+        if($status !== -1) {
             $builder->set("estado", $status);
         }        
         if(!$points > 0) {
@@ -107,7 +116,7 @@ class TaskModel extends Model {
         if(!empty($message)) {
             $builder->set("ultmsg", $message);
         }
-        if($priority > -1) {
+        if($priority !== -1) {
             $builder->set("prioridade", $priority);
         }
         $builder->set("usrdata", "CONVERT(DATE, GETDATE(), 104)", false);

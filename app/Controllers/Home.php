@@ -537,6 +537,34 @@ class Home extends BaseController
             "taskCode" => $taskStamp
         );
 
+        $task = $this->taskModel->getTaskByStamp($taskStamp);
+        if(!$task) {
+            return $this->response->setJSON([
+                "type" => "error",
+                "message" => "A tarefa não existe!"
+            ]);
+        }
+
+        // ALTERAÇÃO
+        // AUTOR: pcorreia@solid-bridge.pt
+        // DATA/HORA: 31/07/2025 11:34
+        // 
+        // Caso a tarefa esteja no estado lançada, permite cancelar a tarefa
+        if($task->estado == 99) {
+            $result = $this->taskModel->updateTaskStatus($taskStamp, 5);
+            if(!$result) {
+                return $this->response->setJSON([
+                    "type" => "error",
+                    "message" => "Ocorreu um erro ao atualizar o estado da tarefa #$taskId!"
+                ]);
+            } 
+            return $this->response->setJSON([
+                "type" => "success",
+                "message" => "Tarefa #$taskId cancelada com sucesso!"
+            ]);
+        }
+
+
         $response = $this->webServicesModel->callWebservice(HIKROBOT_CANCEL_TASK, $requestData);
         if(isset($response->code) && $response->code === "0") {
             $result = $this->taskModel->updateTaskStatus($taskStamp, 5);
