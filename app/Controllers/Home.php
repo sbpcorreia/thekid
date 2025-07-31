@@ -457,7 +457,7 @@ class Home extends BaseController
         }
 
         $sendCartOnly = false;
-        if(empty($sendCartOnly)) {
+        if(empty($taskLines)) {
             $sendCartOnly = true;
         }
 
