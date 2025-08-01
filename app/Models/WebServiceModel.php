@@ -31,7 +31,7 @@ class WebServiceModel extends Model {
         if(!empty($body)) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
         }
-        curl_setopt($ch, CURLOPT_VERBOSE, true);
+       // curl_setopt($ch, CURLOPT_VERBOSE, true);
 
         $result     = curl_exec($ch);
         $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
