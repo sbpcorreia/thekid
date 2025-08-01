@@ -356,24 +356,24 @@ document.addEventListener("DOMContentLoaded", () => {
         "ARTICLE": {
             modalTitle: 'Selecionar Artigo',
             columns: [
-                { field: 'ref', title: 'Referência', dataField: 'ref', sortable: true, searchable: true },
-                { field: 'design', title: 'Designação', dataField : 'design', sortable: true, searchable: true }
+                { field: 'ref', dataField: 'ref', title: 'Referência', dataField: 'ref', sortable: true, searchable: true },
+                { field: 'design', dataField : 'design', title: 'Designação', dataField : 'design', sortable: true, searchable: true }
             ],
             requestType: 'ARTICLE'
         },
         "CUTORDER": {
             modalTitle: 'Selecionar Ordem de Corte',
             columns: [
-                { field: 'orinmdoc', title : 'Documento', sortable: false, searchable : false },
-                { field: 'orindoc', title: 'N.º', dataField : "numordem", sortable: true, searchable: true }
+                { field: 'orinmdoc', dataField : 'orinmdoc', title : 'Documento', sortable: false, searchable : false },
+                { field: 'orindoc', dataField: 'numordem', title: 'N.º', dataField : "numordem", sortable: true, searchable: true }
             ],
             requestType: 'CUTORDER'
         },
         "WORKORDER": {
             modalTitle: 'Selecionar Ordem de Fabrico',
             columns: [
-                { field: 'orinmdoc', title: 'Documento', sortable: false, searchable: false },
-                { field: 'orindoc', title: 'N.º', dataField : "numof", sortable : true, searchable : true }
+                { field: 'orinmdoc', dataField : 'orinmdoc', title: 'Documento', sortable: false, searchable: false },
+                { field: 'orindoc', dataField : 'numof',  title: 'N.º', dataField : "numof", sortable : true, searchable : true }
             ],
             requestType: 'WORKORDER'
         }

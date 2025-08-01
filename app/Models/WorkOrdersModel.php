@@ -27,7 +27,7 @@ class WorkOrdersModel extends Model {
     }
 
 
-    public function getData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "asc") {
+    public function getData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "ASC") {
         $offset = ($pageSize) * ($page-1);
         $query = "SELECT u_tabof.u_tabofstamp AS id, u_tabof.u_tabofstamp [oristamp], u_tabof.numof, 'Ordem de Fabrico' AS orinmdoc ";
         $query .= "FROM TECNOLANEMA..u_tabof (NOLOCK) ";
@@ -39,7 +39,7 @@ class WorkOrdersModel extends Model {
                 $query .= "AND $searchColumn LIKE '%". $search. "%'";
             }
         }    
-        $query .= "ORDER BY u_tabof.numof ";
+        $query .= "ORDER BY u_tabof.numof $sortDirection ";
         
 
         $query .= "OFFSET {$offset} ROWS FETCH NEXT {$pageSize} ROWS ONLY ";
