@@ -331,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	alertify.defaults.theme.cancel = "btn btn-sm btn-danger";
 	alertify.defaults.theme.input = "form-control ajs-input";
     Toast.setPlacement(TOAST_PLACEMENT.BOTTOM_LEFT);
-    const REAL_MAP_WIDTH_MM_FULL = 224850;
+    const REAL_MAP_WIDTH_MM_FULL = 224250;
     const REAL_MAP_HEIGHT_MM_FULL = 70000;
     const KNOWN_ROBOT_MM_POINT = { x: 137187, y: 27806 };
     const KNOWN_ROBOT_PX_POINT = { x: 586.202, y: 218.222 };
@@ -356,26 +356,34 @@ document.addEventListener("DOMContentLoaded", () => {
         "ARTICLE": {
             modalTitle: 'Selecionar Artigo',
             columns: [
-                { field: 'ref', dataField: 'ref', title: 'Referência', dataField: 'ref', sortable: true, searchable: true },
-                { field: 'design', dataField : 'design', title: 'Designação', dataField : 'design', sortable: true, searchable: true }
+                { field: 'ref', title: 'Referência', dataField: 'ref', sortable: true, searchable: true },
+                { field: 'design', title: 'Designação', dataField : 'design', sortable: true, searchable: true }
             ],
             requestType: 'ARTICLE'
         },
         "CUTORDER": {
             modalTitle: 'Selecionar Ordem de Corte',
             columns: [
-                { field: 'orinmdoc', dataField : 'orinmdoc', title : 'Documento', sortable: false, searchable : false },
-                { field: 'orindoc', dataField: 'numordem', title: 'N.º', dataField : "numordem", sortable: true, searchable: true }
+                { field: 'orinmdoc', title : 'Documento', sortable: false, searchable : false },
+                { field: 'orindoc',  title: 'N.º', dataField : "numordem", sortable: true, searchable: true }
             ],
             requestType: 'CUTORDER'
         },
         "WORKORDER": {
             modalTitle: 'Selecionar Ordem de Fabrico',
             columns: [
-                { field: 'orinmdoc', dataField : 'orinmdoc', title: 'Documento', sortable: false, searchable: false },
-                { field: 'orindoc', dataField : 'numof',  title: 'N.º', dataField : "numof", sortable : true, searchable : true }
+                { field: 'orinmdoc', title: 'Documento', sortable: false, searchable: false },
+                { field: 'orindoc',  title: 'N.º', dataField : "numof", sortable : true, searchable : true }
             ],
             requestType: 'WORKORDER'
+        },
+        "CUTORDERJA" : {
+            modalTitle: 'Selecionar Ordem de Corte Jato Água',
+            columns: [
+                { field: 'orinmdoc', title: 'Documento', sortable: false, searchable: false },
+                { field: 'orindoc',  title: 'N.º', dataField : "obrano", sortable : true, searchable : true }
+            ],
+            requestType: 'CUTORDERJA'
         }
         // Adicione mais tipos aqui conforme necessário
     };
@@ -1588,6 +1596,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     label: 'Ordem de fabrico',
                     value: 3,
                     action: () => loadItemData("WORKORDER")
+                },
+                {
+                    label : 'Ordem Corte JA',
+                    value : 4,
+                    action: () => loadItemData("CUTORDERJA")
                 }
             ],
             "TECNOLANEMA": [

@@ -172,6 +172,9 @@ class Home extends BaseController
         } else if($requestType === "CUTORDER") {
             $totalRecords = $this->cutOrdersModel->countData($columnsToShow, $search, $searchColumn);
             $data = $this->cutOrdersModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
+        } else if($requestType === "CUTORDERJA") {
+            $totalRecords = $this->cutOrdersModel->countJaData($columnsToShow, $search, $searchColumn);
+            $data = $this->cutOrdersModel->getJaData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
         } else if($requestType === "ORDER") {
             // TO WORK
         } else if($requestType === "TASKHISTORY") {
