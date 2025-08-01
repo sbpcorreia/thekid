@@ -126,8 +126,8 @@ class CutOrdersModel extends Model {
 
     public function getProdJAByStamp($bostamp) {
         $builder = $this->db->table("bo");
-        $builder->select("bostamp AS id, obrano [orindoc], bostamp [oristamp], 'Ordem de corte JA' [orinmdoc]");
-        $builder->where("bostamp", $bostamp);
+        $builder->select("bo.bostamp AS id, bo.obrano [orindoc], bo.bostamp [oristamp], 'Ordem de corte JA' [orinmdoc]");
+        $builder->where("bo.bostamp", $bostamp);
         $query = $builder->get();
         return $query->getRow();
     }
