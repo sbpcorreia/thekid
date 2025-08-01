@@ -633,6 +633,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } else {
             changePodButton.removeAttribute("disabled");
+            addButton.removeAttribute('disabled');
             updateMainFormUI();
             if(deleteItemButton) {
                 deleteItemButton.forEach(element => {
