@@ -393,98 +393,6 @@ document.addEventListener("DOMContentLoaded", () => {
          return;
     }
 
-    
-
-    async function detectBarcode(inputString, quantity) {
-        let type;
-        let data;
-        let company = "";
-
-        const companyEl = document.getElementById("company");
-        if(companyEl) {
-            company = companyEl.value;
-        }
-
-        const container = document.getElementById('cart-unloading-container');
-        if(container) {
-            if(container.childElementCount > 0) {
-                Toast.create("Atenção", "Existem carrinhos a descarregar!", TOAST_STATUS.WARNING, 5000);
-                return;
-            }
-        }
-
-        if(company === "") return;
-        
-        if (inputString.startsWith("R") && inputString.length === 6) {
-            type = "CART";
-            data = inputString;
-            console.log("Carrinho detetado: " + inputString);
-        } else if (inputString.startsWith("ART:") && inputString.includes(";")) {
-            type = "ARTICLE";
-            data = inputString.substring(4);
-            console.log("Artigo detetado: " + inputString);
-        } else if (inputString.startsWith("OC:") && inputString.length > 3) {
-            type = "CUTORDER";
-            data = inputString.substring(3);
-            console.log("Ordem de corte detetada: " + inputString);
-        } else if (inputString.length === 10 && !isNaN(inputString) && !inputString.includes(".")) {
-            type = "WORKORDER";
-            data = inputString;
-            console.log("Ordem de fabrico detetada: " + inputString);
-        } else if(inputString.startsWith("OCPU:")) {
-            type = "CUTORDERPU";
-            data = inputString.substring(5);
-            console.log("Ordem de corte PU: " + inputString);    
-        } else if(inputString.startsWith("JA:")) {
-            type = "CUTORDERJA";
-            data = inputString.substring(3);
-            console.log("Ordem de corte JA: " + inputString);   
-        } else if(inputString.startsWith("TEC:")) {
-            type = "CUTORDERTEC";
-            data = inputString.substring(4);
-            console.log("Ordem de corte TECNO: " + inputString);   
-        } else {
-            console.log(`Tipo de etiqueta desconhecido para: ${inputString}`);
-            return; // Não processa se o tipo for desconhecido
-        }
-        processBarcode(type, data, company);
-
-    }
-
-    async function processBarcode(type, barcodeData, company) {
-        try {
-            const formData = new FormData();
-            formData.append("type", type);
-            formData.append("data", barcodeData);
-            const response = await fetch(`${sbData.site_url}cartItem`, {
-                method: 'POST',
-                body: formData
-            });
-            if(!response.ok) {
-                Toast.create("Erro", "Ocorreu um erro ao obter os dados código de barras!", TOAST_STATUS.DANGER, 5000);
-            } else {
-                const data = await response.json(); 
-                if (data.type != "success") {
-                    showApiResponseToast(response);
-                } else {
-                    if(type === "CART") {
-                        const rackCodeEl = document.getElementById('cart-code');
-                        if(rackCodeEl) {
-                            //console.log(data, data.data.codigo);
-
-                            rackCodeEl.value = data.data.codigo;
-                            rackCodeEl.dispatchEvent(new Event("change"));
-                        }
-                    } else {
-                        console.log(type);
-                        buildItem(type, company, data.data);
-                    }
-                }           
-            }             
-        } catch (error) {
-            console.error("Erro ao chamar a API:", error);
-        }        
-    }
 
     /**
      * Gera a visualização do estado dos robos
@@ -1294,27 +1202,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
     }
 
-    function updateMainFormUI() {
-        const rackCodeEl = document.getElementById("cart-code");
-        const itemsElement = document.getElementById("item-collection-container");
-        const sendButton = document.getElementById("send-to-robot-button");
-        const sendUrgentButton = document.getElementById("send-priority-to-robot-button")
-        const cancelButton = document.getElementById("cancel-task-button");
-
-        if(rackCodeEl && sendButton && sendUrgentButton && cancelButton) {
-            if(rackCodeEl.value == "" && itemsElement.childElementCount == 0) {
-                console.log("inativo");
-                sendButton.setAttribute("disabled", "disabled");
-                sendUrgentButton.setAttribute("disabled", "disabled");
-                cancelButton.setAttribute("disabled", "disabled");
-            } else {
-                console.log("ativo");
-                sendButton.removeAttribute("disabled");
-                sendUrgentButton.removeAttribute("disabled");
-                cancelButton.removeAttribute("disabled");
-            }
-        }       
-    }    
+    
 
     async function showUnloadLocationsSelectionModal(formData, priority) {      
         if(priority) {
@@ -1547,26 +1435,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return true;
     }
 
-    /**
-     * Exibe um toast com base no tipo de resposta da API.
-     * @param {Object} data - O objeto de resposta da API (deve conter type e message).
-     */
-    function showApiResponseToast(data) {
-        switch (data.type) {
-            case "warning":
-                Toast.create("Aviso", data.message, TOAST_STATUS.WARNING, 5000);
-                break;
-            case "success":
-                Toast.create("Sucesso", data.message, TOAST_STATUS.SUCCESS, 5000);
-                break;
-            case "error": // Adicionado tratamento explícito para 'error' se a API puder retornar.
-                Toast.create("Erro", data.message, TOAST_STATUS.DANGER, 5000);
-                break;
-            default:
-                Toast.create("Info", data.message || "Resposta desconhecida da API.", TOAST_STATUS.INFO, 5000);
-                break;
-        }
-    }
+    
 
     function openItemModal() {       
         const companyEl = document.getElementById("company");
@@ -1626,11 +1495,101 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const menu = new PopupMenu(options, "Selecione uma opção");
         menu.show();
+    }  
+
+    async function detectBarcode(inputString, quantity) {
+        let type;
+        let data;
+        let company = "";
+
+        const companyEl = document.getElementById("company");
+        if(companyEl) {
+            company = companyEl.value;
+        }
+
+        const container = document.getElementById('cart-unloading-container');
+        if(container) {
+            if(container.childElementCount > 0) {
+                Toast.create("Atenção", "Existem carrinhos a descarregar!", TOAST_STATUS.WARNING, 5000);
+                return;
+            }
+        }
+
+        if(company === "") return;
+        
+        if (inputString.startsWith("R") && inputString.length === 6) {
+            type = "CART";
+            data = inputString;
+            console.log("Carrinho detetado: " + inputString);
+        } else if (inputString.startsWith("ART:") && inputString.includes(";")) {
+            type = "ARTICLE";
+            data = inputString.substring(4);
+            console.log("Artigo detetado: " + inputString);
+        } else if (inputString.startsWith("OC:") && inputString.length > 3) {
+            type = "CUTORDER";
+            data = inputString.substring(3);
+            console.log("Ordem de corte detetada: " + inputString);
+        } else if (inputString.length === 10 && !isNaN(inputString) && !inputString.includes(".")) {
+            type = "WORKORDER";
+            data = inputString;
+            console.log("Ordem de fabrico detetada: " + inputString);
+        } else if(inputString.startsWith("OCPU:")) {
+            type = "CUTORDERPU";
+            data = inputString.substring(5);
+            console.log("Ordem de corte PU: " + inputString);    
+        } else if(inputString.startsWith("JA:")) {
+            type = "CUTORDERJA";
+            data = inputString.substring(3);
+            console.log("Ordem de corte JA: " + inputString);   
+        } else if(inputString.startsWith("TEC:")) {
+            type = "CUTORDERTEC";
+            data = inputString.substring(4);
+            console.log("Ordem de corte TECNO: " + inputString);   
+        } else {
+            console.log(`Tipo de etiqueta desconhecido para: ${inputString}`);
+            return; // Não processa se o tipo for desconhecido
+        }
+        processBarcode(type, data, company);
+
     }
 
-    
-    function generateSimpleUniqueId() {
+     function generateSimpleUniqueId() {
         return performance.now().toString(36).replace('.', '') + Math.random().toString(36).substring(2);
+    }
+
+    async function processBarcode(type, barcodeData, company) {
+        try {
+            const formData = new FormData();
+            formData.append("type", type);
+            formData.append("data", barcodeData);
+            const response = await fetch(`${sbData.site_url}cartItem`, {
+                method: 'POST',
+                body: formData
+            });
+            if(!response.ok) {
+                Toast.create("Erro", "Ocorreu um erro ao obter os dados código de barras!", TOAST_STATUS.DANGER, 5000);
+            } else {
+                const data = await response.json(); 
+                if (data.type != "success") {
+                    showApiResponseToast(response);
+                } else {
+                    if(type === "CART") {
+                        const rackCodeEl = document.getElementById('cart-code');
+                        if(rackCodeEl) {
+                            //console.log(data, data.data.codigo);
+
+                            rackCodeEl.value = data.data.codigo;
+                            rackCodeEl.dispatchEvent(new Event("change"));
+                        }
+                    } else {
+                        console.log(type);
+                        buildItem(type, company, data.data);
+                    }
+                }           
+            }             
+        } catch (error) {
+            console.error("Erro ao chamar a API:", error);
+        }        
     }
 
     function buildItem(type, company, data) {
@@ -1722,20 +1681,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 cardToRemove.classList.add("fade");
 
                 cardToRemove.addEventListener("transitionend", (transitionEvent) => {
-                    // Verifica se a propriedade que terminou a transição é 'opacity' OU 'height'.
-                    // Isso é importante porque se você tiver várias transições,
-                    // o evento 'transitionend' é disparado para CADA propriedade que termina a transição.
-                    // Queremos ter certeza de que o elemento desapareceu e/ou encolheu.
-
-                    if (cardToRemove.parentNode) { // Verifica se ainda tem um pai antes de tentar remover
+                    if (cardToRemove.parentNode) { 
                         cardToRemove.remove();
                         updateMainFormUI();
                     }
                     
                 }, {
-                    once: true // Remove o listener automaticamente após a primeira execução
+                    once: true
                 });
-                    }
+            }
         };
 
         itemDeleteButton.addEventListener("click", handleDeleteClick);
@@ -1752,6 +1706,49 @@ document.addEventListener("DOMContentLoaded", () => {
             target.appendChild(itemCard);
         }
         updateMainFormUI();
+    }
+
+    function updateMainFormUI() {
+        const rackCodeEl = document.getElementById("cart-code");
+        const itemsElement = document.getElementById("item-collection-container");
+        const sendButton = document.getElementById("send-to-robot-button");
+        const sendUrgentButton = document.getElementById("send-priority-to-robot-button")
+        const cancelButton = document.getElementById("cancel-task-button");
+
+        if(rackCodeEl && sendButton && sendUrgentButton && cancelButton) {
+            if(rackCodeEl.value == "" && itemsElement.childElementCount == 0) {
+                console.log("inativo");
+                sendButton.setAttribute("disabled", "disabled");
+                sendUrgentButton.setAttribute("disabled", "disabled");
+                cancelButton.setAttribute("disabled", "disabled");
+            } else {
+                console.log("ativo");
+                sendButton.removeAttribute("disabled");
+                sendUrgentButton.removeAttribute("disabled");
+                cancelButton.removeAttribute("disabled");
+            }
+        }       
+    }  
+    
+    /**
+     * Exibe um toast com base no tipo de resposta da API.
+     * @param {Object} data - O objeto de resposta da API (deve conter type e message).
+     */
+    function showApiResponseToast(data) {
+        switch (data.type) {
+            case "warning":
+                Toast.create("Aviso", data.message, TOAST_STATUS.WARNING, 5000);
+                break;
+            case "success":
+                Toast.create("Sucesso", data.message, TOAST_STATUS.SUCCESS, 5000);
+                break;
+            case "error": // Adicionado tratamento explícito para 'error' se a API puder retornar.
+                Toast.create("Erro", data.message, TOAST_STATUS.DANGER, 5000);
+                break;
+            default:
+                Toast.create("Info", data.message || "Resposta desconhecida da API.", TOAST_STATUS.INFO, 5000);
+                break;
+        }
     }
 
     function loadItemData(type) {

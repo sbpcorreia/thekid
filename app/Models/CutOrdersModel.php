@@ -81,7 +81,7 @@ class CutOrdersModel extends Model {
 
     public function getJaData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "asc") {
         $builder = $this->db->table("bo");
-        $builder->select("bo.bostamp AS id, LTRIM(bo.obrano) + '/' + LTRIM(bo.boano) AS obrano, bo.bostamp [oristamp], 'Ordem de corte JA' [orinmdoc]", false);
+        $builder->select("bo.bostamp AS id, LTRIM(bo.obrano) + '/' + LTRIM(bo.boano) AS obrano, bo.obrano [orindoc], bo.bostamp [oristamp], 'Ordem de corte JA' [orinmdoc]", false);
         $builder->join("bo2", "bo2.bo2stamp=bo.bostamp");
         $builder->where("bo.ndos", 154);
         $builder->where("bo.fechada", 0);
@@ -126,7 +126,7 @@ class CutOrdersModel extends Model {
 
     public function getProdJAByStamp($bostamp) {
         $builder = $this->db->table("bo");
-        $builder->select("bo.bostamp AS id, bo.obrano [orindoc], bo.bostamp [oristamp], 'Ordem de corte JA' [orinmdoc]");
+        $builder->select("bo.bostamp AS id, bo.obrano [orindoc], bo.bostamp [oristamp], 'Ordem de corte JA' [orinmdoc]", false);
         $builder->where("bo.bostamp", $bostamp);
         $query = $builder->get();
         return $query->getRow();
