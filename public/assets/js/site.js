@@ -1853,7 +1853,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }, HEARTBEAT_INTERVAL);
     }
 
-    function resetHeartbeat() {
+    function resetHeartbeatTimeout() {
         clearTimeout(heartbeatTimeout);
     }
 
@@ -1883,7 +1883,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         socket.onmessage = (event) => {
             let data = JSON.parse(event.data);
+            
+
+            if (data.type === "pong") {
+                console.log("💓 Recebido pong do servidor!");
+                resetHeartbeatTimeout();
+                return;
+            }
+
             console.info('[📥] Mensagem recebida, dados: ', data);
+
             let statusArea = document.getElementById("sb-robot-area");
             if(statusArea) {
                 let messages = statusArea.querySelectorAll(".ws-msg");
