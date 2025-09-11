@@ -325,7 +325,17 @@ const RobotUI = {
 
 document.addEventListener("DOMContentLoaded", () => {
     
+    // relativo ao Websocket
     let socket;
+    let heartbeatInterval;
+    let heartbeatTimeout;
+    // ping a cada 15 segundos para evitar quebra de ligação ao WS
+    const HEARTBEAT_INTERVAL = 15000;
+    // caso não exista pong, reconectar ao WS 
+    const HEARTBEAT_TIMEOUT = 5000; 
+
+
+
     alertify.defaults.transition = "fade";
 	alertify.defaults.theme.ok = "btn btn-sm btn-success";
 	alertify.defaults.theme.cancel = "btn btn-sm btn-danger";
@@ -1828,6 +1838,29 @@ document.addEventListener("DOMContentLoaded", () => {
             mapViewer.updateRobotPosition(robot.robotCode, robot.posX, robot.posY, robot.robotDir || 0);
         });
     }
+
+    function startHeartbeat() {
+        stopHeartbeat();
+        heartbeatInterval = setInterval(() => {
+            if(socket.readyState === WebSocket.OPEN) {
+                console.log("➡️ A 'pingar' Websocket");
+                socket.send(JSON.stringify({type : "ping"}));
+                heartbeatTimeout = setTimeout(() => {
+                    console.log("💔 Sem resposta do servidor");
+                    socket.close();
+                }, HEARTBEAT_INTERVAL);
+            }
+        }, HEARTBEAT_INTERVAL);
+    }
+
+    function resetHeartbeat() {
+        clearTimeout(heartbeatTimeout);
+    }
+
+    function stopHeartbeat() {
+        clearInterval(heartbeatInterval);
+        clearTimeout(heartbeatTimeout);
+    }
     
    
     function connectWebSocket() {
@@ -1845,6 +1878,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 type: 'get_robot_info',
                 terminalCode : terminalCode
             }));
+            startHeartbeat();
         }
 
         socket.onmessage = (event) => {
@@ -1894,11 +1928,10 @@ document.addEventListener("DOMContentLoaded", () => {
             }
            
             console.info('[🔌] Conexão fechada, tentando reconectar em 3s...');
+            stopHeartbeat();
             setTimeout(connectWebSocket, 3000);
         };
     }
-
-
 
     attachEvents();
     connectWebSocket();

@@ -88,6 +88,11 @@ class HikrobotWebSocketServer implements MessageComponentInterface
 
         $data = json_decode($msg, true);
 
+        if($data["type"] === "ping") {
+            $from->send(json_encode(array("type" => "pong")));
+            return;
+        }
+
         // Validação básica da mensagem
         if (!is_array($data)) {
             echo "Invalid message format from {$from->resourceId}: {$msg}\n";
