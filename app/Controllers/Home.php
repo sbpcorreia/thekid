@@ -352,7 +352,7 @@ class Home extends BaseController
             ]);
         } else if($type == "PRODORDER") {
             $prodOrderStamp    = trim($barcodeData);
-            $prodOrder = $this->workOrdersModel->getDataByStamp($prodOrderStamp);
+            $prodOrder = $this->productionOrdersModel->getDataByStamp($prodOrderStamp);
             if(empty($prodOrder)) {
                 return $this->response->setJSON([
                     "type" => "warning",

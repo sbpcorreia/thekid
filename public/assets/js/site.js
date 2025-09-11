@@ -1557,7 +1557,7 @@ document.addEventListener("DOMContentLoaded", () => {
             data = inputString.substring(4);
             console.log("Ordem de corte TECNO detetada: " + inputString);   
         } else if(inputString.startsWith("EP:")) {
-            type = "WORKORDER";
+            type = "PRODORDER";
             data = inputString.substring("3");
             console.log("Encomenda produção detetada: " + inputString);   
         } else {

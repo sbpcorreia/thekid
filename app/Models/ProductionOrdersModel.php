@@ -75,7 +75,7 @@ class ProductionOrdersModel extends Model {
     }
 
     public function getDataByStamp($prodOrderStamp) {
-        $query = "SELECT bo.bostamp AS id, bo.bostamp AS oristamp, bo.obrano AS orindoc, bo.nmdos AS orinmdoc ";
+        $query = "SELECT bo.bostamp AS id, bo.bostamp AS oristamp, bo.obrano AS orindoc, 'Encomenda Produção (Tecno)' AS orinmdoc ";
         $query .= "FROM TECNOLANEMA..bo (NOLOCK) ";
         $query .= sprintf("WHERE bo.bostamp=%s", $prodOrderStamp); 
         return $this->db->query($query)->getRow();
