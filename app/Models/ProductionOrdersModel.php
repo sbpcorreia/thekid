@@ -66,7 +66,7 @@ class ProductionOrdersModel extends Model {
         if(!empty($sortColumn)) {
             $sqlQuery .= " " . $sortColumn . " " . $sortDirection;    
         } else {
-            $sqlQuery .= " bo.obrano DESC";
+            $sqlQuery .= " bo.ano DESC, bo.obrano DESC";
         }
 
         $sqlQuery .= " OFFSET ".(($pageSize) * ($page-1))." ROWS FETCH NEXT ".$pageSize." ROWS ONLY";
