@@ -6,6 +6,7 @@ use App\Models\ArticlesModel;
 use App\Models\CartsModel;
 use App\Models\CutOrdersModel;
 use App\Models\DevicesModel;
+use App\Models\ProductionOrdersModel;
 use App\Models\RulesModel;
 use App\Models\SpotModel;
 use App\Models\TaskLinesModel;
@@ -23,7 +24,7 @@ class Home extends BaseController
     protected $cartsModel;    
     protected $cutOrdersModel;
     protected $devicesModel;
-    protected $ordersModel;
+    protected $productionOrdersModel;
     protected $rulesModel;
     protected $spotsModel;
     protected $taskModel;
@@ -34,18 +35,18 @@ class Home extends BaseController
 
     public function __construct()
     {
-        $this->articlesModel    = new ArticlesModel();
-        $this->cartsModel       = new CartsModel();        
-        $this->cutOrdersModel   = new CutOrdersModel();
-        $this->devicesModel     = new DevicesModel();
-        $this->ordersModel      = null;
-        $this->rulesModel       = new RulesModel();
-        $this->spotsModel       = new SpotModel();
-        $this->taskModel        = new TaskModel();
-        $this->taskLinesModel   = new TaskLinesModel();
-        $this->terminalModel    = new TerminalModel();
-        $this->webServicesModel = new WebServiceModel();
-        $this->workOrdersModel  = new WorkOrdersModel();     
+        $this->articlesModel                = new ArticlesModel();
+        $this->cartsModel                   = new CartsModel();        
+        $this->cutOrdersModel               = new CutOrdersModel();
+        $this->devicesModel                 = new DevicesModel();
+        $this->productionOrdersModel        = new ProductionOrdersModel();
+        $this->rulesModel                   = new RulesModel();
+        $this->spotsModel                   = new SpotModel();
+        $this->taskModel                    = new TaskModel();
+        $this->taskLinesModel               = new TaskLinesModel();
+        $this->terminalModel                = new TerminalModel();
+        $this->webServicesModel             = new WebServiceModel();
+        $this->workOrdersModel              = new WorkOrdersModel();     
 
     }
 
@@ -175,8 +176,9 @@ class Home extends BaseController
         } else if($requestType === "CUTORDERJA") {
             $totalRecords = $this->cutOrdersModel->countJaData($columnsToShow, $search, $searchColumn);
             $data = $this->cutOrdersModel->getJaData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
-        } else if($requestType === "ORDER") {
-            // TO WORK
+        } else if($requestType === "PRODORDER") {
+           $totalRecords = $this->productionOrdersModel->countData($columnsToShow, $search, $searchColumn);
+           $data = $this->productionOrdersModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
         } else if($requestType === "TASKHISTORY") {
             $status = array(
                 "99" => '<span class="badge text-bg-info">Lançada</span>',
@@ -348,7 +350,20 @@ class Home extends BaseController
                 "type" => "success",
                 "data" => $workOrder
             ]);
-        } 
+        } else if($type == "PRODORDER") {
+            $prodOrderStamp    = trim($barcodeData);
+            $prodOrder = $this->workOrdersModel->getDataByStamp($prodOrderStamp);
+            if(empty($prodOrder)) {
+                return $this->response->setJSON([
+                    "type" => "warning",
+                    "message" => "A encomenda produção não foi encontrada!"
+                ]); 
+            }
+            return $this->response->setJSON([
+                "type" => "success",
+                "data" => $prodOrder
+            ]);
+        }
 
         return $this->response->setJSON([
             "type" => "error",

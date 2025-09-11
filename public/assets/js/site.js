@@ -377,6 +377,14 @@ document.addEventListener("DOMContentLoaded", () => {
             ],
             requestType: 'WORKORDER'
         },
+        "PRODORDER" : {
+            modalTitle: 'Selecionar Encomenda Produção',
+            columns: [
+                { field: 'orinmdoc', title: 'Documento', sortable: false, searchable: false },
+                { field: 'orindoc',  title: 'N.º', dataField : "obrano", sortable : true, searchable : true }
+            ],
+            requestType: 'PRODORDER'
+        },
         "CUTORDERJA" : {
             modalTitle: 'Selecionar Ordem de Corte Jato Água',
             columns: [
@@ -1470,21 +1478,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     label : 'Ordem Corte JA',
                     value : 4,
                     action: () => loadItemData("CUTORDERJA")
-                }
+                },
+                {
+                    label: 'Encomenda Produção',
+                    value: 5,
+                    action: () => loadItemData("PRODORDER")
+                },
             ],
             "TECNOLANEMA": [
                 {
                     label: 'Ordem de fabrico',
                     value: 1,
                     action: () => loadItemData("WORKORDER")
-                }
-                /*
+                },
                 {
-                    label: 'Artigo',
+                    label: 'Encomenda Produção',
                     value: 2,
-                    action: () => loadItemData("ARTICLE")
+                    action: () => loadItemData("PRODORDER")
                 }
-                */
             ]
         };
         const options = companyOptions[companyValue] || [];
@@ -1536,15 +1547,19 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if(inputString.startsWith("OCPU:")) {
             type = "CUTORDERPU";
             data = inputString.substring(5);
-            console.log("Ordem de corte PU: " + inputString);    
+            console.log("Ordem de corte PU detetada: " + inputString);    
         } else if(inputString.startsWith("JA:")) {
             type = "CUTORDERJA";
             data = inputString.substring(3);
-            console.log("Ordem de corte JA: " + inputString);   
+            console.log("Ordem de corte JA detetada: " + inputString);   
         } else if(inputString.startsWith("TEC:")) {
             type = "CUTORDERTEC";
             data = inputString.substring(4);
-            console.log("Ordem de corte TECNO: " + inputString);   
+            console.log("Ordem de corte TECNO detetada: " + inputString);   
+        } else if(inputString.startsWith("EP:")) {
+            type = "WORKORDER";
+            data = inputString.substring("3");
+            console.log("Encomenda produção detetada: " + inputString);   
         } else {
             console.log(`Tipo de etiqueta desconhecido para: ${inputString}`);
             return; // Não processa se o tipo for desconhecido
@@ -1617,6 +1632,8 @@ document.addEventListener("DOMContentLoaded", () => {
             typeInt = 2;
         } else if(type == "CUTORDERTEC") {
             typeInt = 3;
+        } else if(type == "PRODORDER") {
+            typeInt = 4;
         }
         console.log(typeInt, type, data.oristamp, data);
 
@@ -1652,7 +1669,7 @@ document.addEventListener("DOMContentLoaded", () => {
         itemSecondInfoLine.className = "d-flex align-items-center gap-2";
         const itemSecondInfoSpan = document.createElement("span");
 
-        const isOrderType = ['CUTORDER', 'WORKORDER', 'ORDER', 'CUTORDERPU', 'CUTORDERJA', 'CUTORDERTEC'].includes(type);
+        const isOrderType = ['CUTORDER', 'WORKORDER', 'ORDER', 'CUTORDERPU', 'CUTORDERJA', 'CUTORDERTEC', 'PRODORDER'].includes(type);
 
         itemFirstInfoLine.classList.add(isOrderType ? "fs-6" : "fs-2");
         itemFirstInfoSpan.innerHTML = isOrderType ? data.orinmdoc : data.ref;
