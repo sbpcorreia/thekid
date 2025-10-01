@@ -12,6 +12,10 @@ class ServiceRunner extends BaseCommand {
 
     protected $restartDelay = 3; // segundos entre restart se crashar
 
+    // --- NOVO ---
+    // Defina o intervalo de reinício em segundos (Ex: 6 horas)
+    const RESTART_INTERVAL = 6 * 3600; 
+
     public function run(array $params)
     {
         CLI::write("A iniciar serviço de monitorização...", 'yellow');
@@ -35,6 +39,8 @@ class ServiceRunner extends BaseCommand {
             CLI::write("A iniciar " . $config["cmd"], "yellow");
             $proc = $this->startProcess($config);
             if ($proc) {
+                // --- NOVO: Guardar a hora de início ---
+                $proc['startTime'] = time();
                 $processes[] = $proc;
             }
         }
@@ -42,72 +48,111 @@ class ServiceRunner extends BaseCommand {
         // Loop principal
         while (true) {
             foreach ($processes as $index => &$proc) {
-                // Certifique-se que o log está aberto antes de escrever
-                // Isso é importante caso o processo tenha sido reiniciado e o recurso 'log' anterior tenha sido fechado
-                if (!is_resource($proc['log'])) {
-                    $proc['log'] = fopen($proc['logPath'], 'a');
-                    if (!is_resource($proc['log'])) {
-                        CLI::error("Não foi possível reabrir o ficheiro de log: " . $proc['logPath']);
-                        // Pode querer adicionar uma lógica para parar ou tentar novamente
-                        continue; // Passa para o próximo processo
-                    }
-                }
-
+                
+                // 1. Lógica existente: Verificar se o processo parou inesperadamente e reiniciar
                 $status = proc_get_status($proc['resource']);
-
-                // Output live
-                $stdout = stream_get_contents($proc['pipes'][1]);
-                $stderr = stream_get_contents($proc['pipes'][2]);
-
-                if ($stdout !== '') {
-                    CLI::write("[" . $proc['cmd'] . "]: " . trim($stdout));
-                    fwrite($proc['log'], "[" . date('H:i:s') . "] OUT: $stdout");
-                }
-
-                if ($stderr !== '') {
-                    CLI::error("[" . $proc['cmd'] . "]: " . trim($stderr));
-                    fwrite($proc['log'], "[" . date('H:i:s') . "] ERR: $stderr");
-                }
-
-                // Se morreu, reiniciar
-                if (!$status['running']) {
-                    CLI::error("❌ Processo morreu: " . $proc['cmd']);
-                    $this->closeProcess($proc); // Fecha os pipes e o log do processo falhado
-                    CLI::write("⏳ A reiniciar após {$this->restartDelay}s...", 'light_gray');
+                if ($status === false || $status['running'] === false) {
+                    $exitCode = $status['exitcode'] ?? 'N/A';
+                    
+                    // Log do output ANTES de fechar (limpa os pipes)
+                    $this->logProcessOutput($proc);
+                    
+                    CLI::error("Processo parou inesperadamente (Código: {$exitCode}): " . $proc['cmd'], 'red');
+                    $this->closeProcess($proc);
                     sleep($this->restartDelay);
-
-                    // Restart
-                    $newProc = $this->startProcess([
-                        'cmd' => $proc['cmd'],
-                        'log' => $proc['logPath']
-                    ]);
+                    
+                    // Tentativa de restart
+                    $newProc = $this->startProcess($this->commands[$index]);
                     if ($newProc) {
+                        // --- NOVO: Atualizar a hora de início no restart ---
+                        $newProc['startTime'] = time(); 
                         $processes[$index] = $newProc;
-                        CLI::write("✅ Reiniciado: " . $newProc['cmd'], 'green');
+                        CLI::write("✅ Reiniciado (Crash): " . $newProc['cmd'], 'green');
                     } else {
-                        CLI::error("Falha ao reiniciar o processo: " . $proc['cmd'], 'red');
+                        CLI::error("Falha CRÍTICA ao reiniciar o processo: " . $proc['cmd'], 'red');
                     }
+                    continue; // Passa para o próximo processo
                 }
-            }
+                
+                // 2. Lógica nova: Reinício Programado (Memory Leak Mitigation)
+                if (time() - $proc['startTime'] > self::RESTART_INTERVAL) {
+                    
+                    // Log do output antes de fechar (limpa os pipes)
+                    $this->logProcessOutput($proc);
+                    
+                    CLI::write("⏰ Reinício programado do processo para limpar a memória: " . $proc['cmd'], 'cyan');
+                    
+                    // Ações de fecho
+                    $this->closeProcess($proc); 
+                    sleep($this->restartDelay); // Espera um pouco
 
-            usleep(250000); // 250ms
+                    // Início do processo
+                    $newProc = $this->startProcess($this->commands[$index]);
+                    if ($newProc) {
+                        $newProc['startTime'] = time(); // Reinicia o contador de tempo
+                        $processes[$index] = $newProc;
+                        CLI::write("✅ Reiniciado (Programado): " . $newProc['cmd'], 'green');
+                    } else {
+                        CLI::error("Falha CRÍTICA ao reiniciar o processo: " . $proc['cmd'], 'red');
+                    }
+                    continue; // Passa para o próximo processo
+                }
+
+                // Lógica existente/Corrigida: Leitura e log do output (contínua)
+                $this->logProcessOutput($proc);
+
+            }
+            // Faz sleep para evitar 100% de CPU
+            sleep(1); 
         }
     }
 
+    // ====================================================================
+    // --- NOVO MÉTODO ---
+    // ====================================================================
+    
+    /**
+     * Lê a saída dos pipes STDOUT e STDERR do processo e escreve no ficheiro de log.
+     */
+    protected function logProcessOutput(array &$proc)
+    {
+        // Se o recurso de log não estiver aberto, não faz nada
+        if (!is_resource($proc['log'])) {
+            return;
+        }
+
+        // Lê e escreve STDOUT (pipes[1])
+        $output = stream_get_contents($proc['pipes'][1]);
+        if (!empty($output)) {
+            fwrite($proc['log'], $output);
+            fflush($proc['log']); // Garante que é escrito no disco
+        }
+
+        // Lê e escreve STDERR (pipes[2])
+        $error = stream_get_contents($proc['pipes'][2]);
+        if (!empty($error)) {
+            // Adiciona um prefixo para identificar a origem do erro no log
+            $prefixedError = "[\" . date('Y-m-d H:i:s') . \"] [STDERR] " . trim($error) . "\n";
+            fwrite($proc['log'], $prefixedError);
+            fflush($proc['log']);
+        }
+    }
+    
+    // ====================================================================
+    // MÉTODOS AUXILIARES (startProcess, closeProcess - assumidos como existentes)
+    // ====================================================================
+
     protected function startProcess(array $config)
     {
-        $descriptorspec = [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'], // stdout
-            2 => ['pipe', 'w'], // stderr
-        ];
+        // O restante do seu método startProcess existente
+        // ...
+        $descriptorspec = array(
+            0 => array("pipe", "r"),  // stdin
+            1 => array("pipe", "w"),  // stdout
+            2 => array("pipe", "w")   // stderr
+        );
 
-        // Certifica-se que o comando é executável via shell
-        // No Windows, pode ser necessário 'start /b cmd /c <command>' para processos em segundo plano
-        // No Linux, os pipes já gerem isso
-        $process = proc_open($config['cmd'], $descriptorspec, $pipes);
-        echo "A iniciar processo " . $config['cmd'];
-        CLI::write("A iniciar processo" . $config["cmd"], "yellow");
+        $process = proc_open($config['cmd'], $descriptorspec, $pipes, null, $_SERVER);
 
         if (!is_resource($process)) {
             CLI::error("Erro ao iniciar: " . $config['cmd']);
@@ -122,11 +167,10 @@ class ServiceRunner extends BaseCommand {
         $logFile = fopen($config['log'], 'a'); // Sempre reabre para append
         if (!is_resource($logFile)) {
              CLI::error("Não foi possível abrir o ficheiro de log: " . $config['log']);
-             // Não fecha os pipes do processo, mas retorna null
              return null;
         }
 
-        fwrite($logFile, "[" . date('Y-m-d H:i:s') . "] Iniciado: {$config['cmd']}\n");
+        fwrite($logFile, "[" . date('Y-m-d H:i:s') . "] Iniciado: {$config['cmd']}\\n");
 
         return [
             'resource' => $process,
@@ -139,16 +183,24 @@ class ServiceRunner extends BaseCommand {
 
     protected function closeProcess(array &$proc)
     {
+        // Tenta parar o processo
+        @proc_terminate($proc['resource']);
+
+        // Fecha os pipes
         foreach ($proc['pipes'] as $pipe) {
-            if (is_resource($pipe)) { // Verifica se o pipe ainda é um recurso válido
+            if (is_resource($pipe)) { 
                 fclose($pipe);
             }
         }
-        if (is_resource($proc['log'])) { // Verifica se o log ainda é um recurso válido
+        
+        // Fecha o recurso do ficheiro de log
+        if (is_resource($proc['log'])) {
             fclose($proc['log']);
         }
-        if (is_resource($proc['resource'])) { // Verifica se o processo ainda é um recurso válido
-            proc_close($proc['resource']);
-        }
+        
+        // Limpa a referência ao processo e recurso
+        proc_close($proc['resource']);
+        unset($proc['resource']);
+        unset($proc['log']);
     }
 }
