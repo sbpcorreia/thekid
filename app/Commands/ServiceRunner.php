@@ -14,7 +14,7 @@ class ServiceRunner extends BaseCommand {
 
     // --- NOVO ---
     // Defina o intervalo de reinício em segundos (Ex: 6 horas)
-    const RESTART_INTERVAL = 4 * 3600; 
+    const RESTART_INTERVAL = 2 * 3600;
 
     public function run(array $params)
     {
