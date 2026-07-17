@@ -2,52 +2,84 @@
 
 namespace App\Models;
 
+use CodeIgniter\Database\RawSql;
 use CodeIgniter\Model;
 
 class SupplierOrdersModel extends Model {
-
     public function countData($columns, $search = "", $searchColumn = "") {
-        $query = "SELECT COUNT(u_tabof.u_tabofstamp) AS count ";
-        $query .= "FROM TECNOLANEMA..u_tabof (NOLOCK) ";
-        $query .= "WHERE u_tabof.idto IN (4) ";
+
+        $sqlQuery = "SELECT COUNT(bo.bostamp) AS count
+        FROM TECNOLANEMA..bo (NOLOCK) 
+        JOIN TECNOLANEMA..bo2 (NOLOCK) ON bo2.bo2stamp=bo.bostamp 
+        WHERE bo.ndos=2 
+        AND bo.fechada=0 
+        AND bo2.anulado=0";
+
         if(!empty($search)) {
-            if($searchColumn === "global") {
-                $query .= "AND numof LIKE '%". $search. "%'";
+            if($searchColumn == "global") {
+                $sqlQuery .= " AND";
+                $filter = "(";
+                foreach($columns as $key => $value) {
+                    if(!empty($filter)) {
+                        $filter .= " OR";
+                    } 
+                    $filter .= " " . $columns[$key] . " LIKE '%" . trim($search) . "%'";
+                }
+                $filter .= ")";
+                $sqlQuery .= $filter;
             } else {
-                $query .= "AND $searchColumn LIKE '%". $search. "%'";
+                $sqlQuery .= " AND " . $searchColumn . " LIKE '%". $search . "%'";
             }
         }
-               
-        $result = $this->db->query($query)->getRow();
-        return $result->count;
+
+        $query = $this->db->query($sqlQuery);
+        $res = $query->getRow();
+        return $res->count;
+
     }
 
-
-    public function getData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "asc") {
-        $offset = ($pageSize) * ($page-1);
-        $query = "SELECT u_tabof.u_tabofstamp AS id, u_tabof.u_tabofstamp [oristamp], u_tabof.numof, 'Ordem de Fabrico' AS orinmdoc ";
-        $query .= "FROM TECNOLANEMA..u_tabof (NOLOCK) ";
-        $query .= "WHERE u_tabof.idto IN (4) ";
+    public function getData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "ASC") {
+        $sqlQuery = "SELECT bo.bostamp AS id, LTRIM(bo.obrano) + '/' + LTRIM(bo.boano) AS obrano, bo.obrano [orindoc], bo.bostamp [oristamp], 'Encomenda a Fornecedor (Tecno)' [orinmdoc] 
+        FROM TECNOLANEMA..bo (NOLOCK) 
+        JOIN TECNOLANEMA..bo2 (NOLOCK) ON bo2.bo2stamp=bo.bostamp 
+        WHERE bo.ndos=2 
+        AND bo.fechada=0
+        AND bo2.anulado=0";
         if(!empty($search)) {
-            if($searchColumn === "global") {
-                $query .= "AND numof LIKE '%". $search. "%'";
+            if($searchColumn == "global") {
+                $sqlQuery .= " AND";
+                $filter = "(";
+                foreach($columns as $key => $value) {
+                    if(!empty($filter)) {
+                        $filter .= " OR";
+                    } 
+                    $filter .= " " . $columns[$key] . " LIKE '%" . trim($search) . "%'";
+                }
+                $filter .= ")";
+                $sqlQuery .= $filter;
             } else {
-                $query .= "AND $searchColumn LIKE '%". $search. "%'";
+                $sqlQuery .= " AND " . $searchColumn . " LIKE '%". $search . "%'";
             }
-        }    
-        $query .= "ORDER BY u_tabof.numof ";
-        
+        }
+        $sqlQuery .= " ORDER BY";
+        if(!empty($sortColumn)) {
+            $sqlQuery .= " " . $sortColumn . " " . $sortDirection;    
+        } else {
+            $sqlQuery .= " bo.boano DESC, bo.obrano DESC";
+        }
 
-        $query .= "OFFSET {$offset} ROWS FETCH NEXT {$pageSize} ROWS ONLY ";
-
-        return $this->db->query($query)->getResult();
+        $sqlQuery .= " OFFSET ".(($pageSize) * ($page-1))." ROWS FETCH NEXT ".$pageSize." ROWS ONLY";
+        $query = $this->db->query($sqlQuery);
+        return $query->getResult();
     }
 
-    public function getDataByCode($workOrderNumber) {
-        $query = "SELECT u_tabof.u_tabofstamp AS id, u_tabof.u_tabofstamp AS oristamp, u_tabof.numof AS orindoc, 'Ordem de Fabrico' AS orinmdoc ";
-        $query .= "FROM TECNOLANEMA..u_tabof (NOLOCK) ";
-        $query .= sprintf("WHERE u_tabof.numof=%s", $workOrderNumber); 
-        return $this->db->query($query)->getRow();
+    public function getDataByStamp($supplierOrderStamp) {
+        $sqlQuery = "SELECT bo.bostamp AS id, bo.bostamp AS oristamp, bo.obrano AS orindoc, 'Encomenda a Fornecedor (Tecno)' AS orinmdoc ";
+        $sqlQuery .= "FROM TECNOLANEMA..bo (NOLOCK) ";
+        $sqlQuery .= "WHERE bo.bostamp='".$supplierOrderStamp."'"; 
+        $query = $this->db->query($sqlQuery);
+        return $query->getRow();
     }
+
 
 }
