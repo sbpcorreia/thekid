@@ -184,6 +184,7 @@ class Home extends BaseController
         } else if($requestType === "SUPPORDERTEC") {
             $totalRecords = $this->supplierOrdersModel->countData($columnsToShow, $search, $searchColumn);
             $data = $this->supplierOrdersModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
+            var_dump($data);
         } else if($requestType === "TASKHISTORY") {
             $status = array(
                 "99" => '<span class="badge text-bg-info">Lançada</span>',
