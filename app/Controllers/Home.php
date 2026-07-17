@@ -359,7 +359,7 @@ class Home extends BaseController
             $supplierOrderStamp = trim($barcodeData);
             $supplierOrder = $this->supplierOrdersModel->getDataByStamp($supplierOrderStamp);        
         
-            if(empty($workOrder)) {
+            if(empty($supplierOrder)) {
                 return $this->response->setJSON([
                     "type" => "warning",
                     "message" => "A encomenda a fornecedor não foi encontrada!"
