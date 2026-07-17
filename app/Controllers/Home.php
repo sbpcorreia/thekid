@@ -16,6 +16,7 @@ use App\Models\WebServiceModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\WorkOrdersModel;
 use CodeIgniter\HTTP\Response;
+use App\Models\SupplierOrdersModel;
 
 class Home extends BaseController
 {
@@ -32,6 +33,7 @@ class Home extends BaseController
     protected $terminalModel;
     protected $workOrdersModel;
     protected $webServicesModel;
+    protected $supplierOrdersModel;
 
     public function __construct()
     {
@@ -46,8 +48,8 @@ class Home extends BaseController
         $this->taskLinesModel               = new TaskLinesModel();
         $this->terminalModel                = new TerminalModel();
         $this->webServicesModel             = new WebServiceModel();
-        $this->workOrdersModel              = new WorkOrdersModel();     
-
+        $this->workOrdersModel              = new WorkOrdersModel();    
+        $this->supplierOrdersModel          = new SupplierOrdersModel();
     }
 
     public function index()
@@ -179,6 +181,9 @@ class Home extends BaseController
         } else if($requestType === "PRODORDER") {
            $totalRecords = $this->productionOrdersModel->countData($columnsToShow, $search, $searchColumn);
            $data = $this->productionOrdersModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
+        } else if($requestType === "SUPPORDERTEC") {
+            $totalRecords = $this->supplierOrdersModel->countData($columnsToShow, $search, $searchColumn);
+            $data = $this->supplierOrdersModel->getData($columnsToShow, $page, $pageSize, $search, $searchColumn, $sortColumn, $sortDirection);
         } else if($requestType === "TASKHISTORY") {
             $status = array(
                 "99" => '<span class="badge text-bg-info">Lançada</span>',
@@ -350,6 +355,21 @@ class Home extends BaseController
                 "type" => "success",
                 "data" => $workOrder
             ]);
+        } else if($type == "SUPPORDERTEC") {
+            $supplierOrderStamp = trim($barcodeData);
+            $supplierOrder = $this->supplierOrdersModel->getDataByStamp($supplierOrderStamp);        
+        
+            if(empty($workOrder)) {
+                return $this->response->setJSON([
+                    "type" => "warning",
+                    "message" => "A encomenda a fornecedor não foi encontrada!"
+                ]); 
+            }
+            return $this->response->setJSON([
+                "type" => "success",
+                "data" => $supplierOrder
+            ]);
+        
         } else if($type == "PRODORDER") {
             $prodOrderStamp    = trim($barcodeData);
             $prodOrder = $this->productionOrdersModel->getDataByStamp($prodOrderStamp);

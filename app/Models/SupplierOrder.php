@@ -5,16 +5,13 @@ namespace App\Models;
 use CodeIgniter\Database\RawSql;
 use CodeIgniter\Model;
 
-class ProductionOrdersModel extends Model {
-
-    
-
+class SupplierOrdersModel extends Model {
     public function countData($columns, $search = "", $searchColumn = "") {
 
         $sqlQuery = "SELECT COUNT(bo.bostamp) AS count
         FROM TECNOLANEMA..bo (NOLOCK) 
         JOIN TECNOLANEMA..bo2 (NOLOCK) ON bo2.bo2stamp=bo.bostamp 
-        WHERE bo.ndos=155 
+        WHERE bo.ndos=2 
         AND bo.fechada=0 
         AND bo2.anulado=0";
 
@@ -42,10 +39,10 @@ class ProductionOrdersModel extends Model {
     }
 
     public function getData($columns, $page = 1, $pageSize = 20, $search = "", $searchColumn = "", $sortColumn = "", $sortDirection = "ASC") {
-        $sqlQuery = "SELECT bo.bostamp AS id, LTRIM(bo.obrano) + '/' + LTRIM(bo.boano) AS obrano, bo.obrano [orindoc], bo.bostamp [oristamp], 'Encomenda Produção (Tecno)' [orinmdoc] 
+        $sqlQuery = "SELECT bo.bostamp AS id, LTRIM(bo.obrano) + '/' + LTRIM(bo.boano) AS obrano, bo.obrano [orindoc], bo.bostamp [oristamp], 'Encomenda a Fornecedor (Tecno)' [orinmdoc] 
         FROM TECNOLANEMA..bo (NOLOCK) 
         JOIN TECNOLANEMA..bo2 (NOLOCK) ON bo2.bo2stamp=bo.bostamp 
-        WHERE bo.ndos=155 
+        WHERE bo.ndos=2 
         AND bo.fechada=0
         AND bo2.anulado=0";
         if(!empty($search)) {
@@ -76,10 +73,10 @@ class ProductionOrdersModel extends Model {
         return $query->getResult();
     }
 
-    public function getDataByStamp($prodOrderStamp) {
-        $sqlQuery = "SELECT bo.bostamp AS id, bo.bostamp AS oristamp, bo.obrano AS orindoc, 'Encomenda Produção (Tecno)' AS orinmdoc ";
+    public function getDataByStamp($supplierOrderStamp) {
+        $sqlQuery = "SELECT bo.bostamp AS id, bo.bostamp AS oristamp, bo.obrano AS orindoc, 'Encomenda a Fornecedor (Tecno)' AS orinmdoc ";
         $sqlQuery .= "FROM TECNOLANEMA..bo (NOLOCK) ";
-        $sqlQuery .= "WHERE bo.bostamp='".$prodOrderStamp."'"; 
+        $sqlQuery .= "WHERE bo.bostamp='".$supplierOrderStamp."'"; 
         $query = $this->db->query($sqlQuery);
         return $query->getRow();
     }

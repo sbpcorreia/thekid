@@ -395,6 +395,14 @@ document.addEventListener("DOMContentLoaded", () => {
             ],
             requestType: 'PRODORDER'
         },
+        "SUPPORDERTEC" : {
+            modalTitle: 'Selecionar Encomenda a Fornecedor',
+            columns: [
+                { field: 'orinmdoc', title: 'Documento', sortable: false, searchable: false },
+                { field: 'orindoc',  title: 'N.º', dataField : "obrano", sortable : true, searchable : true }
+            ],
+            requestType: 'SUPPORDERTEC'
+        },
         "CUTORDERJA" : {
             modalTitle: 'Selecionar Ordem de Corte Jato Água',
             columns: [
@@ -1494,6 +1502,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     value: 5,
                     action: () => loadItemData("PRODORDER")
                 },
+                {
+                    label: 'Encomenda a fornecedor (TECNO)',
+                    value: 6,
+                    action: () => loadItemData("SUPPORDERTEC")
+                }
             ],
             "TECNOLANEMA": [
                 {
@@ -1505,6 +1518,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     label: 'Encomenda Produção',
                     value: 2,
                     action: () => loadItemData("PRODORDER")
+                },
+                {
+                    label: 'Encomenda a fornecedor (TECNO)',
+                    value: 3,
+                    action: () => loadItemData("SUPPORDERTEC")
                 }
             ]
         };
@@ -1562,6 +1580,10 @@ document.addEventListener("DOMContentLoaded", () => {
             type = "CUTORDERJA";
             data = inputString.substring(3);
             console.log("Ordem de corte JA detetada: " + inputString);   
+        } else if(inputString.startsWith("EF:")) {
+            type = "SUPPORDERTEC";
+            data = inputString.substring(3);
+            console.log("Encomenda a fornecedor (TECNO) detetada: " + inputString);   
         } else if(inputString.startsWith("TEC:")) {
             type = "CUTORDERTEC";
             data = inputString.substring(4);
@@ -1644,6 +1666,8 @@ document.addEventListener("DOMContentLoaded", () => {
             typeInt = 3;
         } else if(type == "PRODORDER") {
             typeInt = 4;
+        }else if(type == "SUPPORDERTEC") {
+            typeInt = 4;
         }
         console.log(typeInt, type, data.oristamp, data);
 
@@ -1679,7 +1703,7 @@ document.addEventListener("DOMContentLoaded", () => {
         itemSecondInfoLine.className = "d-flex align-items-center gap-2";
         const itemSecondInfoSpan = document.createElement("span");
 
-        const isOrderType = ['CUTORDER', 'WORKORDER', 'ORDER', 'CUTORDERPU', 'CUTORDERJA', 'CUTORDERTEC', 'PRODORDER'].includes(type);
+        const isOrderType = ['CUTORDER', 'WORKORDER', 'SUPPORDERTEC', 'ORDER', 'CUTORDERPU', 'CUTORDERJA', 'CUTORDERTEC', 'PRODORDER'].includes(type);
 
         itemFirstInfoLine.classList.add(isOrderType ? "fs-6" : "fs-2");
         itemFirstInfoSpan.innerHTML = isOrderType ? data.orinmdoc : data.ref;
