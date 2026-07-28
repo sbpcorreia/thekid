@@ -427,6 +427,7 @@ class Home extends BaseController
         helper('utilis_helper');
 
         $podCode = $request->getPost("podCode");
+        $posCode = $request->getPost("posCode");
         $terminalCode = $request->getPost("terminalCode");
 
         if(!$podCode) {
@@ -443,8 +444,7 @@ class Home extends BaseController
             ]);
         }
 
-        $unloadLocation = $this->spotsModel->getDefaultUnloadDock($terminalCode);
-        if(empty($unloadLocation)) {
+        if(empty($posCode)) {
             return $this->response->setJSON([
                 "type" => "warning",
                 "message" => "Não existem localizações de descarga associadas ao terminal!"
@@ -455,7 +455,7 @@ class Home extends BaseController
         $requestData = array(
             "reqCode"       => newStamp("POD"),
             "podCode"       => $podCode,
-            "positionCode"  => $unloadLocation->ponto,
+            "positionCode"  => $posCode,
             "podDir"        => "0",
             "indBind"       => "0"
         );

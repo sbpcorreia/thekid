@@ -463,6 +463,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const card = document.createElement('div');
                 card.classList.add('card', 'text-bg-warning', 'shadow-sm', 'mb-3', 'fade'); // Adiciona 'fade' para animação
                 card.setAttribute('data-cart', item.podCode);
+                card.setAttribute('data-location', item.posCode);
                 //card.style.opacity = 0; // Inicia invisível para a animação fade-in
                 var groupedLocationText = "";
                 if(item.group != "") {
@@ -507,6 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const card = event.target.closest('.card');
         if (card) {
             const podCode = card.getAttribute('data-cart');
+            const posCode = card.getAttribute('data-location');
             const terminalCodeEl = document.getElementById("terminal-code");
             let terminalCode = "";
             if(terminalCodeEl) {
@@ -517,6 +519,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const formData = new FormData();
             formData.append("podCode", podCode);
+            formData.append("posCode", posCode);
             formData.append("terminalCode", terminalCode);
 
             try {
