@@ -536,16 +536,10 @@ class Home extends BaseController
                 "mapShortName" => "LN_Floor00"
             ];
 
-            $result = $this->webServicesModel->callWebservice(HIKROBOT_QUERY_POD_BERTH_MAT, $body);
-                        
-            if(!isset($result->code) || !in_array($result->code, array("0", "1"))) {
-                return $this->response->setJSON([
-                    "type" => "error",
-                    "message" => "Ocorreu um erro ao obter o estado das localizações do grupo {$selectedGroup}"
-                ]);
-            }
-            $data = empty($result->data) ? [] : $result->data;
-            $ocuppiedLocations = array_column($data, "positionCode");
+            $ongoingTasks = $this->taskModel->getOngoingTasks();
+
+            $data = empty($ongoingTasks) ? [] : $ongoingTasks;
+            $ocuppiedLocations = array_column($data, "ptoDes");
             $unloadDock = $this->spotsModel->getFirstGroupLocation($selectedGroup, $ocuppiedLocations);
         }
 
@@ -619,11 +613,7 @@ class Home extends BaseController
             ]);
         }
 
-        $requestData = array(
-            "reqCode" => newStamp("CTK"),
-            "forceCancel" => 0,
-            "taskCode" => $taskStamp
-        );
+        
 
         $task = $this->taskModel->getTaskByStamp($taskStamp);
         if(!$task) {
@@ -638,7 +628,7 @@ class Home extends BaseController
         // DATA/HORA: 31/07/2025 11:34
         // 
         // Caso a tarefa esteja no estado lançada, permite cancelar a tarefa
-        if($task->estado === 99) {
+        if($task->estado == 99) {
             $result = $this->taskModel->updateTaskStatus($taskStamp, 5);
             if(!$result) {
                 return $this->response->setJSON([
@@ -652,7 +642,12 @@ class Home extends BaseController
             ]);
         }
 
-
+        $requestData = array(
+            "reqCode" => newStamp("CTK"),
+            "forceCancel" => 0,
+            "taskCode" => $taskStamp
+        );
+        
         $response = $this->webServicesModel->callWebservice(HIKROBOT_CANCEL_TASK, $requestData);
         if(isset($response->code) && $response->code === "0") {
             $result = $this->taskModel->updateTaskStatus($taskStamp, 5);

@@ -91,6 +91,13 @@ class TaskModel extends Model {
         return $query->getResult();
     }
 
+    public function getOngoingTasks() {
+        $builder = $this->db->table($this->table);
+        $builder->whereIn("estado", array(99, 1, 2));
+        $query = $builder->get();
+        return $query->getResult();
+    }
+
     public function updateTaskStatus($taskStamp, $status = -1, $points = 0, $estimatedTime = 0, $errorCode = "", $message = "", $priority = -1) {
         $builder = $this->db->table($this->table);
         if($status == 2) {
