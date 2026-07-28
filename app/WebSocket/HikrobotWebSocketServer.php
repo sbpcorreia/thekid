@@ -319,6 +319,13 @@ class HikrobotWebSocketServer implements MessageComponentInterface
 
         $racks = [];
 
+        $otherLocations = [];
+        $locationGroup = $this->spotModel->getLocationGroup($posCode);
+        if(!empty($locationGroup)) {
+            $groupLocations = $this->spotModel->getGroupLocations($locationGroup);
+        }
+
+
         $body = [
             "reqCode" => newStamp(REQ_CODE_POD_BERTH),
             "mapShortName" => MAP_SHORT_NAME
@@ -329,13 +336,15 @@ class HikrobotWebSocketServer implements MessageComponentInterface
 
             if (isset($podBerthResponse->code) && $podBerthResponse->code == '0' && isset($podBerthResponse->data)) {
                 foreach ($podBerthResponse->data as $rackInfo) {
-                    if (isset($rackInfo->posCode) && $rackInfo->posCode === $posCode) {
+                    if (isset($rackInfo->posCode) && $rackInfo->posCode === $posCode || isset($rackInfo->posCode) && !empty($groupLocations) && in_array($rackInfo->posCode, $groupLocations)) {
                         $hasRack = true;
                         $podCode = $rackInfo->podCode;
                         array_push($racks, array(
-                            "podCode" => $podCode
+                            "podCode" => $podCode,
+                            "group" => $locationGroup,
+                            "posCode" => $rackInfo->posCode
                         ));
-                    }
+                    } 
                 }
             } else {
                 echo "Error fetching pod berth data for rack info: " . json_encode($podBerthResponse) . "\n";

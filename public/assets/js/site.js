@@ -464,12 +464,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 card.classList.add('card', 'text-bg-warning', 'shadow-sm', 'mb-3', 'fade'); // Adiciona 'fade' para animação
                 card.setAttribute('data-cart', item.podCode);
                 //card.style.opacity = 0; // Inicia invisível para a animação fade-in
+                var groupedLocationText = "";
+                if(item.group != "") {
+                    groupedLocationText = `(Local.: ${item.posCode})`;
+                }
 
                 card.innerHTML = `
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center gap-2 fs-2">
                             <i class="bi bi-cart-fill me-2"></i>
-                            <span class="fw-bold">${item.podCode}</span>
+                            <span class="fw-bold">${item.podCode} ${groupedLocationText}</span>
                         </div>
                         <button type="button" class="btn btn-danger btn-lg shardow-sm unload-cart-button" data-bs-toggle="tooltip" title="Descarregar carrinho ${item.podCode}">
                             <i class="bi bi-trash-fill"></i>

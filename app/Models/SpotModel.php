@@ -19,7 +19,57 @@ class SpotModel extends Model {
         return $query->getRow();
     }
 
-    public function getUnloadLocations($terminal, $except = "") {
+    public function getUnloadGroupsExcludingTerminal($terminal, $except = "") {
+        $builder = $this->db->table($this->table);
+        $builder->select("'grupo:' + grupo AS id, '(GRUPO) ' + grupo AS name");
+        $builder->where("grupo!=", "");
+        $builder->whereIn("tipo", array(2,3));
+        $builder->where("terminal!=", $terminal);
+        if($except) {
+            $builder->where("grupo!=", $except);
+        }
+        $builder->groupBy("grupo");
+        $builder->orderBy("grupo");
+        $query = $builder->get();
+        return $query->getResult();
+    }
+
+    public function getGroupLocations($group, $exclude = array()) {
+        $builder = $this->db->table($this->table);
+        $builder->select("ponto");
+        $builder->where("grupo", $group);
+        if(!empty($exclude)) {
+            $builder->whereNotIn("ponto", $exclude);
+        }
+        $query = $builder->get();
+        return $query->getResult();
+    }
+
+    public function getLocationGroup($location) {
+        $builder = $this->db->table($this->table);
+        $builder->select("grupo");
+        $builder->where("ponto", $location);
+        $query = $builder->get();
+        $result = $query->getRowArray();
+        if(!empty($result)) {
+            return $result["grupo"];
+        }
+        return "";
+    }
+
+    public function getFirstGroupLocation($group, $exclude = array()) {
+        $builder = $this->db->table($this->table);
+        $builder->select("ponto");
+        $builder->where("grupo", $group);
+        if(!empty($exclude)) {
+            $builder->whereNotIn("ponto", $exclude);
+        }
+        $builder->orderBy("ponto");
+        $query = $builder->get();
+        return $query->getRowArray(0);
+    }
+
+    public function getUnloadLocations($terminal, $except = "", $excludeGroups = true) {
         $builder = $this->db->table($this->table);
         $builder->select("ponto AS id, '(' + ponto + ') ' descricao AS name");
         $builder->whereIn("tipo", array(2,3));
@@ -27,15 +77,21 @@ class SpotModel extends Model {
         if($except) {
             $builder->where("ponto!=", $except);
         }
+        if($excludeGroups) {
+            $builder->where("grupo=", '');
+        }
         $query = $builder->get();
         return $query->getResult();
     }
 
-    public function getUnloadLocationsExcludingTerminal($terminal) {
+    public function getUnloadLocationsExcludingTerminal($terminal, $excludeGroups = true) {
         $builder = $this->db->table($this->table);
         $builder->select("ponto AS id, '(' + ponto + ') ' + descricao AS name");
         $builder->whereIn("tipo", array(2,3));
         $builder->where("terminal!=", $terminal);
+        if($excludeGroups) {
+            $builder->where("grupo=", "");
+        }
         $query = $builder->get();
         return $query->getResult();
     }

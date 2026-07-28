@@ -392,25 +392,28 @@ class Home extends BaseController
     }    
 
     public function getUnloadLocations($currentTerminal, $multi) : ResponseInterface {
-        $unloadSpots = $this->spotsModel->getUnloadLocationsExcludingTerminal($currentTerminal);
+        $unloadSpots = $this->spotsModel->getUnloadLocationsExcludingTerminal($currentTerminal, true);
+        $unloadGroups = $this->spotsModel->getUnloadGroupsExcludingTerminal($currentTerminal);
+
+        $unloadItems = array_merge($unloadSpots, $unloadGroups);
 
         if($multi == 1) {
             foreach($unloadSpots as $key => $value) {
-                $unloadDock = $unloadSpots[$key]->id;
-                $unloadSpots[$key]->rule = "";
+                $unloadDock = $unloadItems[$key]->id;
+                $unloadItems[$key]->rule = "";
                 $ruleInfo = $this->rulesModel->getRule($currentTerminal, $unloadDock);
                 if(!empty($ruleInfo)) {
                     $loadDock = $ruleInfo->ponto1;
-                    $unloadSpots[$key]->rule = $loadDock;
+                    $unloadItems[$key]->rule = $loadDock;
                 } else {
                     $defaultLoadDock = $this->spotsModel->getDefaultLoadingDock($currentTerminal);
                     if(!empty($defaultLoadDock)) {
-                        $unloadSpots[$key]->rule = $defaultLoadDock;
+                        $unloadItems[$key]->rule = $defaultLoadDock;
                     }
                 }
             }
         }
-        return $this->response->setJSON($unloadSpots); 
+        return $this->response->setJSON($unloadItems); 
     }
 
     public function getLoadLocations($currentTerminal) : ResponseInterface {
@@ -521,6 +524,29 @@ class Home extends BaseController
         $sendCartOnly = false;
         if(empty($taskLines)) {
             $sendCartOnly = true;
+        }
+       
+        // ENVIA PARA LOCALIZAÇÕES AGRUPADAS
+        if(str_starts_with($unloadDock, "grupo:")) {
+            $explodedString = explode(":", $unloadDock);
+            $selectedGroup = $explodedString[1];
+
+            $body = [
+                "reqCode" => newStamp(),
+                "mapShortName" => "LN_Floor00"
+            ];
+
+            $result = $this->webServicesModel->callWebservice(HIKROBOT_QUERY_POD_BERTH_MAT, $body);
+                        
+            if(!isset($result->code) || !in_array($result->code, array("0", "1"))) {
+                return $this->response->setJSON([
+                    "type" => "error",
+                    "message" => "Ocorreu um erro ao obter o estado das localizações do grupo {$selectedGroup}"
+                ]);
+            }
+            $data = empty($result->data) ? [] : $result->data;
+            $ocuppiedLocations = array_column($data, "positionCode");
+            $unloadDock = $this->spotsModel->getFirstGroupLocation($selectedGroup, $ocuppiedLocations);
         }
 
         $taskStamp = newStamp("TSK");
