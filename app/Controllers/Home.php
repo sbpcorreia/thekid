@@ -539,7 +539,7 @@ class Home extends BaseController
             $ongoingTasks = $this->taskModel->getOngoingTasks();
 
             $data = empty($ongoingTasks) ? [] : $ongoingTasks;
-            $ocuppiedLocations = array_column($data, "ptoDes");
+            $ocuppiedLocations = array_column($data, "ptodes");
             $unloadDock = $this->spotsModel->getFirstGroupLocation($selectedGroup, $ocuppiedLocations);
         }
 
@@ -647,7 +647,7 @@ class Home extends BaseController
             "forceCancel" => 0,
             "taskCode" => $taskStamp
         );
-        
+
         $response = $this->webServicesModel->callWebservice(HIKROBOT_CANCEL_TASK, $requestData);
         if(isset($response->code) && $response->code === "0") {
             $result = $this->taskModel->updateTaskStatus($taskStamp, 5);
