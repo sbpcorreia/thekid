@@ -323,7 +323,10 @@ class HikrobotWebSocketServer implements MessageComponentInterface
         $locationGroup = $this->spotModel->getLocationGroup($posCode);
         if(!empty($locationGroup)) {
             $groupLocations = $this->spotModel->getGroupLocations($locationGroup);
+            $otherLocations = array_column($groupLocations, "ponto");
         }
+
+       
 
 
         $body = [
@@ -336,7 +339,7 @@ class HikrobotWebSocketServer implements MessageComponentInterface
 
             if (isset($podBerthResponse->code) && $podBerthResponse->code == '0' && isset($podBerthResponse->data)) {
                 foreach ($podBerthResponse->data as $rackInfo) {
-                    if (isset($rackInfo->posCode) && $rackInfo->posCode === $posCode || isset($rackInfo->posCode) && !empty($groupLocations) && in_array($rackInfo->posCode, $groupLocations)) {
+                    if (isset($rackInfo->posCode) && $rackInfo->posCode === $posCode || isset($rackInfo->posCode) && !empty($otherLocations) && in_array($rackInfo->posCode, $otherLocations)) {
                         $hasRack = true;
                         $podCode = $rackInfo->podCode;
                         array_push($racks, array(

@@ -42,7 +42,7 @@ class SpotModel extends Model {
             $builder->whereNotIn("ponto", $exclude);
         }
         $query = $builder->get();
-        return $query->getResult();
+        return $query->getResultArray();
     }
 
     public function getLocationGroup($location) {
