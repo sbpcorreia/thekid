@@ -497,9 +497,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     await handleUnloadCart(event);
                 };
 
-                SbModal.alert("Existem carrinhos a descarregar!!!!");
+                
             } 
         });
+        SbModal.alert("Existem carrinhos a descarregar!!!!");
         updateCartContainerState();
     }
 
