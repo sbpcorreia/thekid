@@ -170,13 +170,11 @@ class TaskScheduler extends BaseCommand
                 $tasksStatuses = $responseData->data;
                 if(!empty($tasksStatuses)) {
                     foreach($tasksStatuses as $taskStatus) { 
-                        $taskStamp = $taskStatus->taskCode;
-                        /*if(!in_array($taskStamp, $openTaskStamps)) {
-                            //$logger->info("")
-                            continue;
-                        }*/
-                       
+                        $taskStamp = trim($taskStatus->taskCode);                     
                         $status = intval($taskStatus->taskStatus);
+                        if(empty($taskStatus->agvCode)) {
+                            $status = 9;
+                        } 
                         $result = $this->tasksModel->updateTaskStatus($taskStamp, $status);
                         if(!$result) {
                             $logger->error("Ocorreu um erro ao atualizar o estado da tarefa " . $taskStamp . " para o estado " . $status);
