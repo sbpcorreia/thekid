@@ -69,7 +69,7 @@ class TaskScheduler extends BaseCommand
         try {
             $responseData = $this->webserviceModel->callWebservice(HIKROBOT_QUERY_POD_BERTH_MAT, $requestData);
             if(isset($responseData->code) && $responseData->code === '0') {
-                $logger->info("Informação acerca das racks obtida com sucesso! Detalhes: " . json_encode($responseData));
+                //$logger->info("Informação acerca das racks obtida com sucesso! Detalhes: " . json_encode($responseData));
                 $racks = $responseData->data;               
             } else {
                 $logger->error("Erro ao obter info. acerca das racks. Resposta: " . json_encode($responseData));
@@ -95,7 +95,7 @@ class TaskScheduler extends BaseCommand
                 try {
                     $responseData = $this->webserviceModel->callWebservice(HIKROBOT_BIND_POD_BERTH, $requestData);
                     if(isset($responseData->code) && $responseData->code === '0') {
-                        $logger->info("Rack desvinculada da localização com sucesso! Detalhes: " . json_encode($responseData));            
+                        //$logger->info("Rack desvinculada da localização com sucesso! Detalhes: " . json_encode($responseData));            
                     } else {
                         $logger->error("Erro ao desvincular rack. Resposta: " . json_encode($responseData));
                     }        
@@ -161,18 +161,11 @@ class TaskScheduler extends BaseCommand
             'taskCodes' => $tasksCodes
         );
 
-        log_message("info", "LOG REQ. >>> " . json_encode($requestData));
-        $logger->info("LOG REQ >>>" . json_encode($requestData));
-
         try {
             $responseData = $this->webserviceModel->callWebservice(HIKROBOT_QUERY_TASK_STATUS, $requestData);
 
-            $logger->info("LOG RES >>> " . json_encode($responseData));
             if (isset($responseData->code) && $responseData->code === '0') {
                
-                //$pendingTasks = $this->tasksModel->getOpenTasks();
-                //$openTaskStamps = array_column($pendingTasks, "u_kidtaskstamp");
-
                 $tasksStatuses = $responseData->data;
                 if(!empty($tasksStatuses)) {
                     foreach($tasksStatuses as $taskStatus) { 
@@ -184,9 +177,7 @@ class TaskScheduler extends BaseCommand
                         $result = $this->tasksModel->updateTaskStatus($taskStamp, $status);
                         if(!$result) {
                             $logger->error("Ocorreu um erro ao atualizar o estado da tarefa " . $taskStamp . " para o estado " . $status);
-                        } else {
-                            $logger->info("Task " . $taskStamp . " status updated to: " . $status . ". ReqCode: " . $requestData['reqCode']);
-                        }
+                        } 
                     }
                 }                
             } else {
