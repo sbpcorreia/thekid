@@ -329,6 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let socket;
     let heartbeatInterval;
     let heartbeatTimeout;
+    
     // ping a cada 15 segundos para evitar quebra de ligação ao WS
     const HEARTBEAT_INTERVAL = 15000;
     // caso não exista pong, reconectar ao WS 
@@ -455,6 +456,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if(newCartItems.length == 0) return;
 
+        var messageActive = false;
+
         newCartItems.forEach(item => {
             const existingCard = container.querySelector(`[data-cart="${item.podCode}"]`);
             if (!existingCard) {
@@ -498,9 +501,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
 
                 
+                if(!messageActive) {
+                    messageActive = true;
+                    SbModal.alert("Existem carrinhos a descarregar!!!!", () => {
+                        messageActive = false;
+                    });                
+                }
+                
+                
             } 
         });
-        SbModal.alert("Existem carrinhos a descarregar!!!!");
+        
         updateCartContainerState();
     }
 
