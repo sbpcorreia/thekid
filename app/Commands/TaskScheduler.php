@@ -39,6 +39,7 @@ class TaskScheduler extends BaseCommand
                 }
                 
                 $pendingTasks = $this->tasksModel->getOpenTasks();
+                log_message("info", "TAREFAS PENDENTES >>> " . json_encode($pendingTasks));
                 if(!empty($pendingTasks)) {
                     $this->updateTaskStatusFromRobot($pendingTasks, $logger);
                 }  
@@ -160,8 +161,12 @@ class TaskScheduler extends BaseCommand
             'taskCodes' => $tasksCodes
         );
 
+        log_message("info", "LOG REQ. >>> " . json_encode($requestData));
+
         try {
             $responseData = $this->webserviceModel->callWebservice(HIKROBOT_QUERY_TASK_STATUS, $requestData);
+
+            log_message("info", "LOG RESP. >>> " . json_encode($responseData));
             if (isset($responseData->code) && $responseData->code === '0') {
                
                 //$pendingTasks = $this->tasksModel->getOpenTasks();
