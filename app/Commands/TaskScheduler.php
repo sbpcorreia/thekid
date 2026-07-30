@@ -162,11 +162,12 @@ class TaskScheduler extends BaseCommand
         );
 
         log_message("info", "LOG REQ. >>> " . json_encode($requestData));
+        $logger->info("LOG REQ >>>" . json_encode($requestData));
 
         try {
             $responseData = $this->webserviceModel->callWebservice(HIKROBOT_QUERY_TASK_STATUS, $requestData);
 
-            log_message("info", "LOG RESP. >>> " . json_encode($responseData));
+            $logger->info("LOG RES >>> " . json_encode($responseData));
             if (isset($responseData->code) && $responseData->code === '0') {
                
                 //$pendingTasks = $this->tasksModel->getOpenTasks();
