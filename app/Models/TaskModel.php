@@ -91,6 +91,14 @@ class TaskModel extends Model {
         return $query->getResult();
     }
 
+    public function getOpenTasks() {
+        $builder = $this->db->table($this->table);
+        $builder->select("u_kidtaskstamp");
+        $builder->whereIn("estado", array(9,5));
+        $query = $builder->get();
+        return $query->getResult();
+    }
+
     public function getOngoingTasks() {
         $builder = $this->db->table($this->table);
         $builder->whereIn("estado", array(99, 1, 2));

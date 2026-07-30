@@ -38,7 +38,7 @@ class TaskScheduler extends BaseCommand
                     }
                 }
                 
-                $pendingTasks = $this->tasksModel->getPendingTasks();
+                $pendingTasks = $this->tasksModel->getOpenTasks();
                 if(!empty($pendingTasks)) {
                     $this->updateTaskStatusFromRobot($pendingTasks, $logger);
                 }  
@@ -164,10 +164,18 @@ class TaskScheduler extends BaseCommand
             $responseData = $this->webserviceModel->callWebservice(HIKROBOT_QUERY_TASK_STATUS, $requestData);
             if (isset($responseData->code) && $responseData->code === '0') {
                
+                //$pendingTasks = $this->tasksModel->getOpenTasks();
+                //$openTaskStamps = array_column($pendingTasks, "u_kidtaskstamp");
+
                 $tasksStatuses = $responseData->data;
                 if(!empty($tasksStatuses)) {
-                    foreach($tasksStatuses as $taskStatus) {
+                    foreach($tasksStatuses as $taskStatus) { 
                         $taskStamp = $taskStatus->taskCode;
+                        /*if(!in_array($taskStamp, $openTaskStamps)) {
+                            //$logger->info("")
+                            continue;
+                        }*/
+                       
                         $status = intval($taskStatus->taskStatus);
                         $result = $this->tasksModel->updateTaskStatus($taskStamp, $status);
                         if(!$result) {
