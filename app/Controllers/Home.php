@@ -536,10 +536,26 @@ class Home extends BaseController
                 "mapShortName" => "LN_Floor00"
             ];
 
+
+            $result = $this->webServicesModel->callWebservice(HIKROBOT_QUERY_POD_BERTH_MAT, $body);
+
+            $resultData = [];
+            if(isset($result->code) && $result->code === "0") {
+                $resultData = $result->data;
+            }
+
+            $cartsOnMap = [];
+            if(!empty($resultData)) {
+                $cartsOnMap = array_column($resultData, "positionCode");
+            }
+            
             $ongoingTasks = $this->taskModel->getOngoingTasks();
 
             $data = empty($ongoingTasks) ? [] : $ongoingTasks;
             $ocuppiedLocations = array_column($data, "ptodes");
+            if(!empty($cartsOnMap)) {
+                $ocuppiedLocations = array_merge($ocuppiedLocations, $cartsOnMap);
+            }
             $unloadDock = $this->spotsModel->getFirstGroupLocation($selectedGroup, $ocuppiedLocations);
         }
 

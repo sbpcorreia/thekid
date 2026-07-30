@@ -19,7 +19,8 @@ class WebServiceModel extends Model {
     }
 
     public function callWebservice($method, $body = array(), $object = true) {
-        $url        = sprintf("%s%s", $method == HIKROBOT_QUERY_AGV_STATUS ? $this->url : $this->url2, $method); 
+        //$url        = sprintf("%s%s", $method == HIKROBOT_QUERY_AGV_STATUS ? $this->url : $this->url2, $method); 
+        $url        = sprintf("%s%s", $this->url2, $method);
         $ch         = curl_init($url);
 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
