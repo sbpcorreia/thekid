@@ -189,8 +189,9 @@ class TaskScheduler extends BaseCommand
                     }
                 }                
             } else {
-                $errorMessage = "UTFR Failed to query status for tasks list (ReqCode " . $requestData['reqCode'] . "): " . ($responseData->message ?? 'Unknown API error');
+                $errorMessage = "UTFR Failed to query status for tasks list (ReqCode " . json_encode($requestData) . "): " . ($responseData->message ?? 'Unknown API error');
                 $logger->error($errorMessage . " Response: " . json_encode($responseData));
+                
             }
         } catch (\CodeIgniter\HTTP\Exceptions\HTTPException $e) {
             $logger->error("HTTP error querying task status for task " . $taskStamp . " (ReqCode " . $requestData['reqCode'] . "): " . $e->getMessage());
